@@ -1,0 +1,36 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (since Go 1.11, usually not tracked)
+vendor/
+/go.work
+/go.work.sum
+
+# Environment Files (Sangat Sensitif!)
+.env
+.env.*
+*.local
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Project specific compiled binary
+server
+main
+rekap-gaji-digital

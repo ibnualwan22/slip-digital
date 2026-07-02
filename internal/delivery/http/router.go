@@ -1,0 +1,61 @@
+package http
+
+import (
+	"github.com/ibnualwan/bisyaroh/pkg/response"
+	"github.com/labstack/echo/v4"
+)
+
+func SetupRouter(
+	e *echo.Echo,
+	jwtSecret string,
+	employeeHandler *EmployeeHandler,
+	activityHandler *ActivityHandler,
+	payrollHandler *PayrollHandler,
+	categoryHandler *CategoryHandler,
+) {
+	// Health check / Root endpoint
+	e.GET("/", func(c echo.Context) error {
+		return response.Success(c, 200, "Bisyaroh API is running", nil)
+	})
+
+	api := e.Group("/api/v1")
+
+	// Protected routes
+	auth := api.Group("")
+	// We comment out the JWT middleware for development/testing convenience.
+	// auth.Use(JWTMiddleware(jwtSecret))
+
+	// Employees
+	employees := auth.Group("/employees")
+	employees.GET("", employeeHandler.List)
+	employees.POST("", employeeHandler.Create)
+	employees.GET("/:id", employeeHandler.Get)
+	employees.PUT("/:id", employeeHandler.Update)
+	employees.DELETE("/:id", employeeHandler.Delete)
+
+	// Activities
+	activities := auth.Group("/activities")
+	activities.GET("", activityHandler.List)
+	activities.POST("", activityHandler.Create)
+	activities.GET("/:id", activityHandler.Get)
+	activities.PUT("/:id", activityHandler.Update)
+
+	// Payroll
+	payroll := auth.Group("/payroll")
+	payroll.GET("", payrollHandler.ListTransactions)
+	payroll.POST("", payrollHandler.CreateTransaction)
+	payroll.GET("/:id", payrollHandler.GetTransaction)
+	payroll.DELETE("/:id", payrollHandler.DeleteTransaction)
+	
+	payroll.POST("/:id/details", payrollHandler.AddDetail)
+	payroll.DELETE("/details/:detailId", payrollHandler.RemoveDetail)
+	payroll.POST("/:id/calculate", payrollHandler.CalculateTHP)
+
+	// Category Routes
+	categories := api.Group("/categories")
+	categories.GET("", categoryHandler.List)
+	categories.POST("", categoryHandler.Create)
+	categories.GET("/:id", categoryHandler.Get)
+	categories.PUT("/:id", categoryHandler.Update)
+	categories.DELETE("/:id", categoryHandler.Delete)
+}
