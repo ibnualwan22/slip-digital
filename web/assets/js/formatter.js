@@ -1,3 +1,12 @@
+// Format number to dot-separated thousands input display (3000000 → "3.000.000")
+window.formatRupiahInput = (value) => {
+    const cleanValue = String(value).replace(/\./g, '').trim();
+    if (cleanValue === '') return '';
+    const num = parseFloat(cleanValue);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('id-ID');
+};
+
 const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',

@@ -7,7 +7,8 @@ const api = {
                 method,
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                cache: 'no-store'
             };
 
             if (data) {

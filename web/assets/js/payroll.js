@@ -63,7 +63,7 @@ async function loadPayrolls() {
             <tr>
                 <td>
                     <div style="font-weight:600">${p.employee?.name || 'Unknown'}</div>
-                    <div style="font-size:12px;color:var(--text-muted)">${getCategoryLabel(p.employee?.category)}</div>
+                    <div style="font-size:12px;color:var(--text-muted)">${p.employee?.category?.name || '-'}</div>
                 </td>
                 <td>${getMonthName(p.month)} ${p.year}</td>
                 <td style="color:var(--success)">${formatRupiah(p.gross_income)}</td>
@@ -99,7 +99,7 @@ async function showPayrollForm() {
             <div class="form-group">
                 <label class="form-label">Pegawai</label>
                 <select id="swal-pay-emp" class="form-control">
-                    ${employees.map(e => `<option value="${e.id}">${e.name} (${getCategoryLabel(e.category)})</option>`).join('')}
+                    ${employees.map(e => `<option value="${e.id}">${e.name} (${e.category?.name || '-'})</option>`).join('')}
                 </select>
             </div>
             <div class="form-row">

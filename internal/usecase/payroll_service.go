@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"github.com/ibnualwan/bisyaroh/internal/domain"
+	"github.com/shopspring/decimal"
 )
 
 type PayrollService interface {
@@ -14,11 +14,11 @@ type PayrollService interface {
 	GetTransaction(id uuid.UUID) (*domain.PayrollTransaction, error)
 	ListTransactions(month, year int) ([]domain.PayrollTransaction, error)
 	DeleteTransaction(id uuid.UUID) error
-	
+
 	AddDetail(detail *domain.PayrollDetail) error
 	UpdateDetail(detail *domain.PayrollDetail) error
 	RemoveDetail(id uuid.UUID) error
-	
+
 	CalculateTransactionTHP(txID uuid.UUID) error
 	UpdateStatus(txID uuid.UUID, status domain.PayrollStatus) error
 	EnsurePayrollForEmployee(empID uuid.UUID, month, year int) error
@@ -42,7 +42,7 @@ func (s *payrollService) CreateTransaction(tx *domain.PayrollTransaction) error 
 	if err != nil {
 		return errors.New("employee not found")
 	}
-	
+
 	if tx.ID == uuid.Nil {
 		tx.ID = uuid.New()
 	}
@@ -121,7 +121,7 @@ func (s *payrollService) AddDetail(detail *domain.PayrollDetail) error {
 		loc = time.Local
 	}
 	detail.RecordedAt = time.Now().In(loc).Format("02/01/2006 15:04:05")
-	
+
 	err = s.repo.CreateDetail(detail)
 	if err == nil {
 		s.CalculateTransactionTHP(detail.PayrollTransactionID)
@@ -139,13 +139,13 @@ func (s *payrollService) UpdateDetail(detail *domain.PayrollDetail) error {
 func (s *payrollService) RemoveDetail(id uuid.UUID) error {
 	// Need to get detail first to know which tx to calculate
 	var txID uuid.UUID
-	
+
 	// Quick hack to get txID since we don't have GetDetailByID in repo
-	// Let's modify the repo later if needed, but for now we can rely on 
-	// the fact that we can just pass the txID from the frontend? 
+	// Let's modify the repo later if needed, but for now we can rely on
+	// the fact that we can just pass the txID from the frontend?
 	// Wait, the handler doesn't have it.
 	// Oh well, we'll fix the handler to fetch it, or add GetDetailByID.
-	
+
 	// Actually let's add GetDetailByID to payrollRepository
 	// I'll update it separately.
 	detail, err := s.repo.GetDetailByID(id)
@@ -214,7 +214,7 @@ func (s *payrollService) CalculateTransactionTHP(txID uuid.UUID) error {
 	// 2. Sum up everything accurately
 	gross := decimal.Zero
 	deductions := decimal.Zero
-	
+
 	for _, detail := range details {
 		if detail.Type == domain.TypeAddition {
 			gross = gross.Add(detail.TotalAmount)
@@ -235,7 +235,7 @@ func (s *payrollService) UpdateStatus(txID uuid.UUID, status domain.PayrollStatu
 	if err != nil {
 		return err
 	}
-	
+
 	// Can only transition forward (DRAFT -> CONFIRMED -> PAID)
 	// For simplicity, just update it here
 	tx.Status = status

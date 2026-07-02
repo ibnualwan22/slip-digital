@@ -1,11 +1,11 @@
 async function renderPayrollDetail(container, params) {
     container.innerHTML = `<div class="loading-state"><i class='bx bx-loader-alt bx-spin'></i><p>Memuat data slip gaji...</p></div>`;
-    
+
     try {
         const res = await api.get(`/payroll/${params.id}`);
         const tx = res.data;
         const details = tx.details || [];
-        
+
         const additions = details.filter(d => d.type === 'ADDITION');
         const deductions = details.filter(d => d.type === 'DEDUCTION');
 
@@ -40,7 +40,7 @@ async function renderPayrollDetail(container, params) {
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Rincian Pendapatan (Income)</h3>
-                    ${tx.status === 'DRAFT' ? `<button class="btn btn-sm btn-outline" onclick="showAddDetailForm('${tx.id}', 'ADDITION', '${tx.employee?.category?.code || ''}', ${tx.employee?.category?.target_incentive || 0})"><i class='bx bx-plus'></i> Tambah Item</button>` : ''}
+                    ${tx.status === 'DRAFT' ? `<button class="btn btn-sm btn-outline" onclick="showAddDetailForm('${tx.id}', 'ADDITION', '${tx.employee?.category?.calc_method || ''}', ${tx.employee?.category?.target_incentive || 0}, ${tx.employee?.hourly_rate || tx.employee?.category?.hourly_rate || 0})"><i class='bx bx-plus'></i> Tambah Item</button>` : ''}
                 </div>
                 <div class="card-body p-0">
                     <table class="table">
@@ -86,7 +86,7 @@ async function renderPayrollDetail(container, params) {
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">Rincian Potongan (Deduction)</h3>
-                    ${tx.status === 'DRAFT' ? `<button class="btn btn-sm btn-outline" onclick="showAddDetailForm('${tx.id}', 'DEDUCTION', '${tx.employee?.category?.code || ''}', ${tx.employee?.category?.target_incentive || 0})"><i class='bx bx-plus'></i> Tambah Item</button>` : ''}
+                    ${tx.status === 'DRAFT' ? `<button class="btn btn-sm btn-outline" onclick="showAddDetailForm('${tx.id}', 'DEDUCTION', '${tx.employee?.category?.calc_method || ''}', ${tx.employee?.category?.target_incentive || 0}, ${tx.employee?.hourly_rate || tx.employee?.category?.hourly_rate || 0})"><i class='bx bx-plus'></i> Tambah Item</button>` : ''}
                 </div>
                 <div class="card-body p-0">
                     <table class="table">
@@ -148,52 +148,66 @@ async function renderPayrollDetail(container, params) {
 }
 
 // Global helper to reload current route
-window.loadPayrollDetailData = function(id) {
+window.loadPayrollDetailData = function (id) {
     handleRoute();
 }
 
 let allActivitiesCache = [];
 
-async function showAddDetailForm(txId, type, categoryCode = '', targetIncentive = 0) {
+async function showAddDetailForm(txId, type, calcMethod = '', targetIncentive = 0, hourlyRate = 0) {
     if (allActivitiesCache.length === 0) {
         try {
             const res = await api.get('/activities?active=true');
             allActivitiesCache = res.data || [];
-        } catch(e) {}
+        } catch (e) { }
     }
 
     const filteredActs = allActivitiesCache.filter(a => a.type === type);
-    
+
     let htmlOptions = '<option value="" data-rate="0">-- Pilih Aktivitas --</option>';
-    for(let a of filteredActs) {
-        let defaultRate = a.default_rate;
+    for (let a of filteredActs) {
+        let defaultRate = 0; // Default 0 for all activities in the dropdown
         let rateText = "";
-        
-        if (a.activity_code === 'JAM_AJAR' && (categoryCode === 'S2_GEL1' || categoryCode === 'S2_GEL2')) {
-            defaultRate = targetIncentive / 70;
-            rateText = ` (Target/70)`;
+
+        if (a.activity_code === 'JAM_AJAR') {
+            // Priority: employee hourly_rate override > category rate > 0
+            if (calcMethod === 'PROPORTIONAL') {
+                defaultRate = Math.round(targetIncentive / 70);
+                rateText = ` (Target/70)`;
+            } else if (calcMethod === 'HOURLY' && hourlyRate > 0) {
+                defaultRate = hourlyRate;
+                rateText = ` (Tarif Jam)`;
+            }
+            // else stays 0, user can input manually
+        } else {
+            // For non-JAM_AJAR, keep the activity's default rate
+            defaultRate = a.default_rate || 0;
         }
-        
+
         htmlOptions += `<option value="${a.id}" data-rate="${defaultRate}">${a.activity_name}${rateText}</option>`;
     }
-    
+
     const { value: formValues } = await Swal.fire({
         title: `Tambah ${type === 'ADDITION' ? 'Pendapatan' : 'Potongan'}`,
         html: `
             <div class="form-group">
                 <label class="form-label">Pilih Aktivitas</label>
-                <select id="swal-det-act" class="form-control" onchange="document.getElementById('swal-det-rate').value = this.options[this.selectedIndex].dataset.rate || 0">
+                <select id="swal-det-act" class="form-control" onchange="
+                    var rate = this.options[this.selectedIndex].dataset.rate || 0;
+                    document.getElementById('swal-det-rate').value = formatRupiahInput(rate);
+                ">
                     ${htmlOptions}
                 </select>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Quantity</label>
-                    <input type="number" id="swal-det-qty" class="form-control" value="1">
+                    <label class="form-label">Quantity / Jumlah Jam</label>
+                    <input type="number" id="swal-det-qty" class="form-control" value="1" min="0" step="0.5">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Rate (Rp)</label>
-                    <input type="number" id="swal-det-rate" class="form-control" value="0">
+                    <input type="text" id="swal-det-rate" class="form-control" value="0"
+                        oninput="this.value = formatRupiahInput(this.value.replace(/\\./g, ''))">
                 </div>
             </div>
             <div class="form-group">
@@ -215,7 +229,7 @@ async function showAddDetailForm(txId, type, categoryCode = '', targetIncentive 
             return {
                 activity_id: actId,
                 quantity: parseFloat(document.getElementById('swal-det-qty').value),
-                rate: parseFloat(document.getElementById('swal-det-rate').value),
+                rate: parseFloat(document.getElementById('swal-det-rate').value.replace(/\./g, '').replace(',', '.')) || 0,
                 type: type,
                 description: document.getElementById('swal-det-desc').value
             }
@@ -226,14 +240,14 @@ async function showAddDetailForm(txId, type, categoryCode = '', targetIncentive 
         try {
             await api.post(`/payroll/${txId}/details`, formValues);
             Swal.fire({
-                title: 'Berhasil', 
-                text: 'Item ditambahkan', 
+                title: 'Berhasil',
+                text: 'Item ditambahkan',
                 icon: 'success',
                 timer: 1500,
                 showConfirmButton: false
             });
             handleRoute(); // reload page
-        } catch (e) {}
+        } catch (e) { }
     }
 }
 
@@ -247,19 +261,19 @@ async function calculateTHP(txId) {
                 Swal.showLoading();
             }
         });
-        
+
         await api.post(`/payroll/${txId}/calculate`);
-        
+
         Swal.fire({
-            title: 'Berhasil', 
-            text: 'Kalkulasi THP berhasil disimpan', 
+            title: 'Berhasil',
+            text: 'Kalkulasi THP berhasil disimpan',
             icon: 'success',
             timer: 1500,
             showConfirmButton: false
         });
-        
+
         handleRoute(); // reload page
-    } catch (e) {}
+    } catch (e) { }
 }
 
 async function removeDetail(detailId, txId) {
@@ -277,13 +291,13 @@ async function removeDetail(detailId, txId) {
     if (result.isConfirmed) {
         try {
             await api.delete(`/payroll/details/${detailId}`);
-            
+
             // Auto recalculate after delete
             await api.post(`/payroll/${txId}/calculate`);
-            
+
             Swal.fire({
-                title: 'Terhapus!', 
-                text: 'Item berhasil dihapus.', 
+                title: 'Terhapus!',
+                text: 'Item berhasil dihapus.',
                 icon: 'success',
                 timer: 1500,
                 showConfirmButton: false

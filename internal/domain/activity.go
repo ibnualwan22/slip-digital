@@ -10,7 +10,7 @@ import (
 type MasterActivity struct {
 	ID           uuid.UUID       `gorm:"type:uuid;primaryKey" json:"id"`
 	ActivityName string          `gorm:"type:varchar(255);not null" json:"activity_name"`
-	Code         string          `gorm:"type:varchar(50);uniqueIndex;not null" json:"code"`
+	Code         string          `gorm:"type:varchar(50);unique;not null" json:"code"`
 	DefaultRate  decimal.Decimal `gorm:"type:numeric(19,4);default:0" json:"default_rate"`
 	Type         ActivityType    `gorm:"type:varchar(20);not null" json:"type"`
 	Description  string          `gorm:"type:text" json:"description"`

@@ -24,7 +24,7 @@ func (r *payrollRepository) CreateTransaction(tx *domain.PayrollTransaction) err
 
 func (r *payrollRepository) GetTransactionByID(id uuid.UUID) (*domain.PayrollTransaction, error) {
 	var tx domain.PayrollTransaction
-	err := r.db.Preload("Employee").Preload("Details").Preload("Details.Activity").First(&tx, "id = ?", id).Error
+	err := r.db.Preload("Employee").Preload("Employee.Category").Preload("Details").Preload("Details.Activity").First(&tx, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (r *payrollRepository) GetTransactionByID(id uuid.UUID) (*domain.PayrollTra
 
 func (r *payrollRepository) ListTransactions(month, year int) ([]domain.PayrollTransaction, error) {
 	var txs []domain.PayrollTransaction
-	query := r.db.Preload("Employee")
+	query := r.db.Preload("Employee").Preload("Employee.Category")
 	
 	if month > 0 {
 		query = query.Where("month = ?", month)

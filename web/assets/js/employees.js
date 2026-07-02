@@ -132,11 +132,11 @@ async function showEmployeeForm(id = null) {
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Tunjangan Khusus <span style="font-size:11px;color:var(--text-muted)">(opsional, override kategori)</span></label>
-                    <input type="number" id="swal-allowance" class="form-control" value="${emp.structural_allowance || ''}" placeholder="Kosongkan = ikut kategori">
+                    <input type="text" id="swal-allowance" class="form-control" value="${emp.structural_allowance ? formatRupiahInput(emp.structural_allowance) : ''}" placeholder="Kosongkan = ikut kategori" oninput="this.value = formatRupiahInput(this.value.replace(/\\./g, ''))">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Tarif Jam Mengajar <span style="font-size:11px;color:var(--text-muted)">(opsional, override kategori)</span></label>
-                    <input type="number" id="swal-hourly" class="form-control" value="${emp.hourly_rate || ''}" placeholder="Kosongkan = ikut kategori">
+                    <input type="text" id="swal-hourly" class="form-control" value="${emp.hourly_rate ? formatRupiahInput(emp.hourly_rate) : ''}" placeholder="Kosongkan = ikut kategori" oninput="this.value = formatRupiahInput(this.value.replace(/\\./g, ''))">
                 </div>
             </div>
             <div class="form-group" style="margin-top: 15px;">
@@ -162,8 +162,8 @@ async function showEmployeeForm(id = null) {
                 name: document.getElementById('swal-name').value,
                 category_id: catId,
                 role: document.getElementById('swal-role').value,
-                structural_allowance: allowanceVal !== '' ? parseFloat(allowanceVal) : null,
-                hourly_rate: hourlyVal !== '' ? parseFloat(hourlyVal) : null,
+                structural_allowance: allowanceVal !== '' ? parseFloat(allowanceVal.replace(/\./g, '')) : null,
+                hourly_rate: hourlyVal !== '' ? parseFloat(hourlyVal.replace(/\./g, '')) : null,
                 is_active: document.getElementById('swal-active').checked
             }
         }
