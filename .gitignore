@@ -31,6 +31,6 @@ vendor/
 Thumbs.db
 
 # Project specific compiled binary
-server
-main
+/server
+/main
 rekap-gaji-digital

@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build the executable
-RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
 
 # Phase 2: Create a lightweight image for runtime
 FROM alpine:latest
