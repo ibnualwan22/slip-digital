@@ -1,22 +1,32 @@
 package http
 
 import (
+	"encoding/base64"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"github.com/ibnualwan/bisyaroh/internal/domain"
 	"github.com/ibnualwan/bisyaroh/internal/usecase"
+	"github.com/ibnualwan/bisyaroh/pkg/generator"
 	"github.com/ibnualwan/bisyaroh/pkg/response"
+	"github.com/ibnualwan/bisyaroh/pkg/whatsapp"
+	"github.com/labstack/echo/v4"
 )
 
 type PayrollHandler struct {
-	service usecase.PayrollService
+	service  usecase.PayrollService
+	waClient whatsapp.WhatsAppClient
+	slipGen  generator.SlipGenerator
 }
 
-func NewPayrollHandler(service usecase.PayrollService) *PayrollHandler {
-	return &PayrollHandler{service: service}
+func NewPayrollHandler(service usecase.PayrollService, waClient whatsapp.WhatsAppClient, slipGen generator.SlipGenerator) *PayrollHandler {
+	return &PayrollHandler{
+		service:  service,
+		waClient: waClient,
+		slipGen:  slipGen,
+	}
 }
 
 func (h *PayrollHandler) CreateTransaction(c echo.Context) error {
@@ -114,4 +124,70 @@ func (h *PayrollHandler) CalculateTHP(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "calculation successful", nil)
+}
+
+func (h *PayrollHandler) PreviewSlipWA(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid transaction id")
+	}
+
+	tx, err := h.service.GetTransaction(id)
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "transaction not found")
+	}
+
+	// Generate issue date (Pare, [Date])
+	// Use Indonesian formatting for month
+	months := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
+	now := time.Now()
+	issueDate := strconv.Itoa(now.Day()) + " " + months[now.Month()] + " " + strconv.Itoa(now.Year())
+
+	imageBytes, err := h.slipGen.GenerateSlipImage(tx, issueDate)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to generate slip image")
+	}
+
+	// Return base64 for preview
+	base64Img := base64.StdEncoding.EncodeToString(imageBytes)
+	return response.Success(c, http.StatusOK, "success", map[string]string{
+		"image_base64": base64Img,
+	})
+}
+
+func (h *PayrollHandler) SendSlipWA(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid transaction id")
+	}
+
+	tx, err := h.service.GetTransaction(id)
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "transaction not found")
+	}
+
+	if tx.Employee.PhoneWA == "" {
+		return response.Error(c, http.StatusBadRequest, "pegawai tidak memiliki nomor whatsapp yang tersimpan")
+	}
+
+	months := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
+	now := time.Now()
+	issueDate := strconv.Itoa(now.Day()) + " " + months[now.Month()] + " " + strconv.Itoa(now.Year())
+
+	imageBytes, err := h.slipGen.GenerateSlipImage(tx, issueDate)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to generate slip image")
+	}
+
+	caption := "Assalamu'alaikum Warahmatullahi Wabarakatuh\n\n" +
+		"Berikut adalah Slip Bisyaroh Anda untuk periode " + strconv.Itoa(tx.Month) + "/" + strconv.Itoa(tx.Year) + ".\n" +
+		"Terima kasih atas dedikasi dan pengabdian Anda di Markaz Arabiyah. Semoga barokah.\n\n" +
+		"Salam,\nManajemen Markaz Arabiyah."
+
+	err = h.waClient.SendImage(tx.Employee.PhoneWA, caption, imageBytes)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "gagal mengirim pesan WA: "+err.Error())
+	}
+
+	return response.Success(c, http.StatusOK, "slip berhasil dikirim via WhatsApp", nil)
 }

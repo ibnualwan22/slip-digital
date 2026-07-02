@@ -14,9 +14,12 @@ import (
 )
 
 type Config struct {
-	Port      string
-	JWTSecret string
-	DB        *gorm.DB
+	Port       string
+	JWTSecret  string
+	DB         *gorm.DB
+	WA_API_URL string
+	WA_API_KEY string
+	WA_SESSION string
 }
 
 func LoadConfig() *Config {
@@ -53,9 +56,12 @@ func LoadConfig() *Config {
 	migrateAndSeed(db)
 
 	return &Config{
-		Port:      port,
-		JWTSecret: jwtSecret,
-		DB:        db,
+		Port:       port,
+		JWTSecret:  jwtSecret,
+		DB:         db,
+		WA_API_URL: os.Getenv("WA_API_URL"),
+		WA_API_KEY: os.Getenv("WA_API_KEY"),
+		WA_SESSION: os.Getenv("WA_SESSION_ID"),
 	}
 }
 

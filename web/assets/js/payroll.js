@@ -8,7 +8,7 @@ async function renderPayroll(container) {
             <div class="card-header">
                 <div class="filter-bar" style="margin-bottom:0">
                     <select id="filter-month" class="form-control" style="width:150px">
-                        ${Array.from({length: 12}, (_, i) => `<option value="${i+1}" ${i+1===currentMonth?'selected':''}>${getMonthName(i+1)}</option>`).join('')}
+                        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === currentMonth ? 'selected' : ''}>${getMonthName(i + 1)}</option>`).join('')}
                     </select>
                     <input type="number" id="filter-year" class="form-control" value="${currentYear}" style="width:100px">
                 </div>
@@ -21,7 +21,7 @@ async function renderPayroll(container) {
                     <table class="table" id="payroll-table">
                         <thead>
                             <tr>
-                                <th>Pegawai</th>
+                                <th>Asatidz</th>
                                 <th>Periode</th>
                                 <th>Pendapatan (Gross)</th>
                                 <th>Potongan</th>
@@ -46,14 +46,14 @@ async function renderPayroll(container) {
 async function loadPayrolls() {
     const tbody = document.querySelector('#payroll-table tbody');
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Memuat data...</td></tr>';
-    
+
     const month = document.getElementById('filter-month').value;
     const year = document.getElementById('filter-year').value;
 
     try {
         const res = await api.get(`/payroll?month=${month}&year=${year}`);
         const data = res.data || [];
-        
+
         if (data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Tidak ada transaksi pada periode ini</td></tr>';
             return;
@@ -71,6 +71,7 @@ async function loadPayrolls() {
                 <td style="font-weight:700;color:var(--primary-color)">${formatRupiah(p.take_home_pay)}</td>
                 <td>${getStatusBadge(p.status)}</td>
                 <td>
+                    <button class="btn-icon" style="color:#25D366" onclick="previewAndSendSlip('${p.id}')" title="Kirim WA"><i class='bx bxl-whatsapp'></i></button>
                     <a href="#/payroll/${p.id}" class="btn-icon" title="Lihat Detail"><i class='bx bx-right-arrow-alt'></i></a>
                     <button class="btn-icon delete" onclick="deleteTransaction('${p.id}')" title="Hapus"><i class='bx bx-trash'></i></button>
                 </td>
@@ -85,9 +86,9 @@ async function showPayrollForm() {
     // Fetch employees for dropdown
     const empRes = await api.get('/employees?active=true');
     const employees = empRes.data || [];
-    
-    if(employees.length === 0) {
-        Swal.fire('Oops', 'Tidak ada data pegawai aktif', 'error');
+
+    if (employees.length === 0) {
+        Swal.fire('Oops', 'Tidak ada data Asatidz aktif', 'error');
         return;
     }
 
@@ -97,7 +98,7 @@ async function showPayrollForm() {
         title: 'Buat Transaksi Payroll Baru',
         html: `
             <div class="form-group">
-                <label class="form-label">Pegawai</label>
+                <label class="form-label">Asatidz</label>
                 <select id="swal-pay-emp" class="form-control">
                     ${employees.map(e => `<option value="${e.id}">${e.name} (${e.category?.name || '-'})</option>`).join('')}
                 </select>
@@ -106,7 +107,7 @@ async function showPayrollForm() {
                 <div class="form-group">
                     <label class="form-label">Bulan</label>
                     <select id="swal-pay-month" class="form-control">
-                        ${Array.from({length: 12}, (_, i) => `<option value="${i+1}" ${i+1===now.getMonth()+1?'selected':''}>${getMonthName(i+1)}</option>`).join('')}
+                        ${Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${i + 1 === now.getMonth() + 1 ? 'selected' : ''}>${getMonthName(i + 1)}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -166,5 +167,41 @@ async function deleteTransaction(id) {
         } catch (e) {
             // error handled by api
         }
+    }
+}
+
+async function previewAndSendSlip(id) {
+    try {
+        Swal.fire({
+            title: 'Membuat Preview...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const res = await api.get('/payroll/' + id + '/preview-wa');
+        const b64 = res.data.image_base64;
+
+        const { isConfirmed } = await Swal.fire({
+            title: 'Preview Slip Gaji',
+            html: `<img src="data:image/jpeg;base64,${b64}" style="width:100%;max-width:500px;border:1px solid #ccc;border-radius:8px;">`,
+            width: '600px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bx bxl-whatsapp"></i> Kirim via WhatsApp',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#25D366'
+        });
+
+        if (isConfirmed) {
+            Swal.fire({
+                title: 'Mengirim Pesan...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            await api.post('/payroll/' + id + '/send-wa');
+            Swal.fire('Terkirim!', 'Slip berhasil dikirim ke WhatsApp pegawai.', 'success');
+        }
+    } catch (e) {
+        // error already handled by api.js
     }
 }

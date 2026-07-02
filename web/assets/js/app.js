@@ -9,8 +9,8 @@ document.getElementById('close-sidebar').addEventListener('click', () => {
 // Simple Hash Router
 const routes = {
     '#/dashboard': { title: 'Dashboard', render: renderDashboard },
-    '#/categories': { title: 'Master Kategori Pegawai', render: renderCategories },
-    '#/employees': { title: 'Data Pegawai', render: renderEmployees },
+    '#/categories': { title: 'Master Kategori Asatidz', render: renderCategories },
+    '#/employees': { title: 'Data Asatidz', render: renderEmployees },
     '#/activities': { title: 'Master Aktivitas', render: renderActivities },
     '#/payroll': { title: 'Transaksi Payroll', render: renderPayroll },
 };
@@ -20,7 +20,7 @@ const titleEl = document.getElementById('page-title');
 
 async function handleRoute() {
     let hash = window.location.hash || '#/dashboard';
-    
+
     // Check dynamic routes
     let matchedRoute = routes[hash];
     let params = {};
@@ -39,10 +39,10 @@ async function handleRoute() {
 
     // Update UI
     titleEl.textContent = matchedRoute.title;
-    
+
     // Update active menu
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-    
+
     let menuId = hash.split('/')[1]; // 'dashboard', 'employees', etc
     const activeMenu = document.getElementById(`menu-${menuId}`);
     if (activeMenu) activeMenu.classList.add('active');

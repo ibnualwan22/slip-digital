@@ -4,7 +4,7 @@ async function renderCategories(container) {
     container.innerHTML = `
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Master Kategori Pegawai</h3>
+                <h3 class="card-title">Master Kategori Asatidz</h3>
                 <button class="btn btn-primary" onclick="showCategoryForm()">
                     <i class='bx bx-plus'></i> Tambah Kategori
                 </button>
@@ -36,11 +36,11 @@ async function renderCategories(container) {
 async function loadCategories() {
     const tbody = document.querySelector('#cat-table tbody');
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Memuat data...</td></tr>';
-    
+
     try {
         const res = await api.get('/categories');
         categoriesData = res.data || [];
-        
+
         if (categoriesData.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center">Tidak ada data kategori</td></tr>';
             return;
@@ -71,8 +71,8 @@ async function loadCategories() {
 
 async function showCategoryForm(id = null) {
     let cat = {
-        name: '', code: '', calc_method: 'FIXED', 
-        fixed_salary: 0, structural_allowance: 0, 
+        name: '', code: '', calc_method: 'FIXED',
+        fixed_salary: 0, structural_allowance: 0,
         target_incentive: 0, hourly_rate: 0
     };
     let title = 'Tambah Kategori Baru';
@@ -99,9 +99,9 @@ async function showCategoryForm(id = null) {
             <div class="form-group">
                 <label class="form-label">Metode Kalkulasi (Jam Mengajar)</label>
                 <select id="swal-calc" class="form-control">
-                    <option value="FIXED" ${cat.calc_method=='FIXED'?'selected':''}>FIXED (Tanpa Rate)</option>
-                    <option value="HOURLY" ${cat.calc_method=='HOURLY'?'selected':''}>HOURLY (Jam x Tarif Lokal)</option>
-                    <option value="PROPORTIONAL" ${cat.calc_method=='PROPORTIONAL'?'selected':''}>PROPORTIONAL (Jam / 70 x Target)</option>
+                    <option value="FIXED" ${cat.calc_method == 'FIXED' ? 'selected' : ''}>FIXED (Tanpa Rate)</option>
+                    <option value="HOURLY" ${cat.calc_method == 'HOURLY' ? 'selected' : ''}>HOURLY (Jam x Tarif Lokal)</option>
+                    <option value="PROPORTIONAL" ${cat.calc_method == 'PROPORTIONAL' ? 'selected' : ''}>PROPORTIONAL (Jam / 70 x Target)</option>
                 </select>
             </div>
             <hr style="margin:20px 0; border:1px solid #E2E8F0">
@@ -169,7 +169,7 @@ async function showCategoryForm(id = null) {
 async function deleteCategory(id) {
     const result = await Swal.fire({
         title: 'Hapus Kategori?',
-        text: "Kategori tidak dapat dihapus jika masih ada pegawai yang terhubung!",
+        text: "Kategori tidak dapat dihapus jika masih ada Asatidz yang terhubung!",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--danger)',

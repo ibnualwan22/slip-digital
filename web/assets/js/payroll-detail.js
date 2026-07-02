@@ -14,13 +14,13 @@ async function renderPayrollDetail(container, params) {
                 <a href="#/payroll" class="btn btn-outline"><i class='bx bx-left-arrow-alt'></i> Kembali</a>
                 <div>
                     <button class="btn btn-outline" onclick="loadPayrollDetailData('${tx.id}')"><i class='bx bx-refresh'></i> Refresh</button>
-                    <button class="btn btn-outline" onclick="loadPayrollDetailData('${tx.id}')"><i class='bx bx-refresh'></i> Refresh</button>
+                    ${tx.status !== 'DRAFT' ? `<button class="btn btn-primary" style="background:#25D366;border-color:#25D366" onclick="previewAndSendSlip('${tx.id}')"><i class='bx bxl-whatsapp'></i> Kirim via WA</button>` : `<button class="btn btn-primary" onclick="calculateTHP('${tx.id}')"><i class='bx bx-calculator'></i> Hitung THP</button>`}
                 </div>
             </div>
 
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="label">Nama Pegawai</div>
+                    <div class="label">Nama Asatidz</div>
                     <div class="value">${tx.employee?.name || '-'}</div>
                 </div>
                 <div class="info-item">
@@ -306,5 +306,41 @@ async function removeDetail(detailId, txId) {
         } catch (e) {
             // err
         }
+    }
+}
+
+async function previewAndSendSlip(id) {
+    try {
+        Swal.fire({
+            title: 'Membuat Preview...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        const res = await api.get('/payroll/' + id + '/preview-wa');
+        const b64 = res.data.image_base64;
+
+        const { isConfirmed } = await Swal.fire({
+            title: 'Preview Slip Gaji',
+            html: `<img src="data:image/jpeg;base64,${b64}" style="width:100%;max-width:500px;border:1px solid #ccc;border-radius:8px;">`,
+            width: '600px',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bx bxl-whatsapp"></i> Kirim via WhatsApp',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#25D366'
+        });
+
+        if (isConfirmed) {
+            Swal.fire({
+                title: 'Mengirim Pesan...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            await api.post('/payroll/' + id + '/send-wa');
+            Swal.fire('Terkirim!', 'Slip berhasil dikirim ke WhatsApp pegawai.', 'success');
+        }
+    } catch (e) {
+        // error already handled by api.js
     }
 }

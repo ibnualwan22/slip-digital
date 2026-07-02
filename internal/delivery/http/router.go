@@ -50,6 +50,8 @@ func SetupRouter(
 	payroll.POST("/:id/details", payrollHandler.AddDetail)
 	payroll.DELETE("/details/:detailId", payrollHandler.RemoveDetail)
 	payroll.POST("/:id/calculate", payrollHandler.CalculateTHP)
+	payroll.GET("/:id/preview-wa", payrollHandler.PreviewSlipWA)
+	payroll.POST("/:id/send-wa", payrollHandler.SendSlipWA)
 
 	// Category Routes
 	categories := api.Group("/categories")

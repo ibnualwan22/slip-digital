@@ -16,6 +16,7 @@ type Employee struct {
 	// Per-employee overrides (null = use category default)
 	StructuralAllowance *decimal.Decimal  `gorm:"type:numeric(19,4)" json:"structural_allowance"`
 	HourlyRate          *decimal.Decimal  `gorm:"type:numeric(19,4)" json:"hourly_rate"`
+	PhoneWA             string            `gorm:"type:varchar(20)" json:"phone_wa"`
 	IsActive            bool              `gorm:"default:true" json:"is_active"`
 	CreatedAt           time.Time         `json:"created_at"`
 	UpdatedAt           time.Time         `json:"updated_at"`
