@@ -44,10 +44,10 @@ func NewSlipGenerator(bgPath, stempelPath string) (SlipGenerator, error) {
 		return nil, fmt.Errorf("failed to parse bold font: %w", err)
 	}
 
-	regular, _ := opentype.NewFace(fRegular, &opentype.FaceOptions{Size: 24, DPI: 72, Hinting: font.HintingFull})
-	bold, _ := opentype.NewFace(fBold, &opentype.FaceOptions{Size: 24, DPI: 72, Hinting: font.HintingFull})
-	small, _ := opentype.NewFace(fRegular, &opentype.FaceOptions{Size: 20, DPI: 72, Hinting: font.HintingFull})
-	smBold, _ := opentype.NewFace(fBold, &opentype.FaceOptions{Size: 20, DPI: 72, Hinting: font.HintingFull})
+	regular, _ := opentype.NewFace(fRegular, &opentype.FaceOptions{Size: 30, DPI: 72, Hinting: font.HintingFull})
+	bold, _ := opentype.NewFace(fBold, &opentype.FaceOptions{Size: 30, DPI: 72, Hinting: font.HintingFull})
+	small, _ := opentype.NewFace(fRegular, &opentype.FaceOptions{Size: 25, DPI: 72, Hinting: font.HintingFull})
+	smBold, _ := opentype.NewFace(fBold, &opentype.FaceOptions{Size: 25, DPI: 72, Hinting: font.HintingFull})
 
 	return &slipGenerator{
 		bgPath:      bgPath,
@@ -159,11 +159,11 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	rightMargin := 1152
 	tableLeft := leftMargin
 	tableRight := rightMargin
-	rowH := 40 // Modest taller rows for 1.5x fonts
+	rowH := 48 // Modest taller rows for 30/25 fonts
 
 	// ========== 2. GROUP DETAILS ==========
 	details := tx.Details
-	
+
 	type slipItem struct {
 		Name     string
 		Intensif string
@@ -234,21 +234,21 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	}
 
 	// ========== 3. EMPLOYEE INFO ==========
-	// Push everything down significantly as requested
-	y := 330
+	// Push everything down by an additional 80px (~2cm)
+	y := 410
 
 	// Row 1: Nama Pegawai | Jabatan
 	drawText(canvas, leftMargin, y, "Nama Pegawai", s.fontSmall, black)
-	drawText(canvas, leftMargin+135, y, ":  "+tx.Employee.Name, s.fontSmBold, black)
+	drawText(canvas, leftMargin+240, y, ":  "+tx.Employee.Name, s.fontSmBold, black)
 	drawText(canvas, 660, y, "Jabatan", s.fontSmall, black)
-	drawText(canvas, 760, y, ":  "+tx.Employee.Role, s.fontSmBold, black)
+	drawText(canvas, 780, y, ":  "+tx.Employee.Role, s.fontSmBold, black)
 
 	// Row 2: Duf'ah | Tanggal
-	y += 22
+	y += 32
 	drawText(canvas, leftMargin, y, "Duf'ah", s.fontSmall, black)
-	drawText(canvas, leftMargin+135, y, ":  -", s.fontSmall, black)
+	drawText(canvas, leftMargin+240, y, ":  -", s.fontSmall, black)
 	drawText(canvas, 660, y, "Tanggal", s.fontSmall, black)
-	drawText(canvas, 760, y, ":  "+issueDate, s.fontSmall, black)
+	drawText(canvas, 780, y, ":  "+issueDate, s.fontSmall, black)
 
 	drawHLine(canvas, leftMargin, tableRight, y+10, lineColor)
 
@@ -277,10 +277,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	drawVLine(canvas, col4, headerY, headerY+rowH, lineColor)
 	drawVLine(canvas, col5, headerY, headerY+rowH, lineColor)
 
-	drawText(canvas, col1+10, headerY+20, "Nama Pengajaran", s.fontSmBold, black)
-	drawText(canvas, col2+10, headerY+20, "Intensif", s.fontSmBold, black)
-	drawText(canvas, col3+10, headerY+20, "Jumlah", s.fontSmBold, black)
-	drawText(canvas, col4+10, headerY+20, "Total", s.fontSmBold, black)
+	drawText(canvas, col1+10, headerY+32, "Nama Pengajaran", s.fontSmBold, black)
+	drawText(canvas, col2+10, headerY+32, "Intensif", s.fontSmBold, black)
+	drawText(canvas, col3+10, headerY+32, "Jumlah", s.fontSmBold, black)
+	drawText(canvas, col4+10, headerY+32, "Total", s.fontSmBold, black)
 
 	y = headerY + rowH
 	pengajaranTotal := decimal.Zero
@@ -292,10 +292,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		drawVLine(canvas, col4, y, y+rowH, lineColor)
 		drawVLine(canvas, col5, y, y+rowH, lineColor)
 
-		drawText(canvas, col1+10, y+20, item.Name, s.fontSmall, black)
-		drawTextRight(canvas, col3-10, y+20, item.Intensif, s.fontSmall, black)
-		drawText(canvas, col3+10, y+20, item.Qty, s.fontSmall, black)
-		drawTextRight(canvas, col5-10, y+20, item.Total, s.fontSmall, black)
+		drawText(canvas, col1+10, y+32, item.Name, s.fontSmall, black)
+		drawTextRight(canvas, col3-10, y+32, item.Intensif, s.fontSmall, black)
+		drawText(canvas, col3+10, y+32, item.Qty, s.fontSmall, black)
+		drawTextRight(canvas, col5-10, y+32, item.Total, s.fontSmall, black)
 		y += rowH
 	}
 
@@ -305,7 +305,7 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	drawVLine(canvas, col1, y, y+rowH, lineColor)
 	drawVLine(canvas, col4, y, y+rowH, lineColor)
 	drawVLine(canvas, col5, y, y+rowH, lineColor)
-	drawText(canvas, col4-110, y+20, "TOTAL", s.fontSmBold, black)
+	drawText(canvas, col4-110, y+32, "TOTAL", s.fontSmBold, black)
 	for _, det := range tx.Details {
 		code := ""
 		name := det.Description
@@ -322,7 +322,7 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 			pengajaranTotal = pengajaranTotal.Add(det.TotalAmount)
 		}
 	}
-	drawTextRight(canvas, col5-10, y+20, formatRp(pengajaranTotal), s.fontSmBold, black)
+	drawTextRight(canvas, col5-10, y+32, formatRp(pengajaranTotal), s.fontSmBold, black)
 	y += rowH + 30 // Larger gap
 
 	// ---------- SECTION 2: LIQO'AT BERINTESIF ----------
@@ -344,10 +344,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	drawVLine(canvas, lCol4, lHeaderY, lHeaderY+rowH, lineColor)
 	drawVLine(canvas, lCol5, lHeaderY, lHeaderY+rowH, lineColor)
 
-	drawText(canvas, lCol1+10, lHeaderY+20, "Nama Liqo'at", s.fontSmBold, black)
-	drawText(canvas, lCol2+10, lHeaderY+20, "Intensif", s.fontSmBold, black)
-	drawText(canvas, lCol3+10, lHeaderY+20, "Jumlah", s.fontSmBold, black)
-	drawText(canvas, lCol4+10, lHeaderY+20, "Total", s.fontSmBold, black)
+	drawText(canvas, lCol1+10, lHeaderY+32, "Nama Liqo'at", s.fontSmBold, black)
+	drawText(canvas, lCol2+10, lHeaderY+32, "Intensif", s.fontSmBold, black)
+	drawText(canvas, lCol3+10, lHeaderY+32, "Jumlah", s.fontSmBold, black)
+	drawText(canvas, lCol4+10, lHeaderY+32, "Total", s.fontSmBold, black)
 
 	y = lHeaderY + rowH
 	for _, item := range liqoatItems {
@@ -358,10 +358,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		drawVLine(canvas, lCol4, y, y+rowH, lineColor)
 		drawVLine(canvas, lCol5, y, y+rowH, lineColor)
 
-		drawText(canvas, lCol1+10, y+20, item.Name, s.fontSmall, black)
-		drawTextRight(canvas, lCol3-10, y+20, item.Intensif, s.fontSmall, black)
-		drawText(canvas, lCol3+10, y+20, item.Qty, s.fontSmall, black)
-		drawTextRight(canvas, lCol5-10, y+20, item.Total, s.fontSmall, black)
+		drawText(canvas, lCol1+10, y+32, item.Name, s.fontSmall, black)
+		drawTextRight(canvas, lCol3-10, y+32, item.Intensif, s.fontSmall, black)
+		drawText(canvas, lCol3+10, y+32, item.Qty, s.fontSmall, black)
+		drawTextRight(canvas, lCol5-10, y+32, item.Total, s.fontSmall, black)
 		y += rowH
 	}
 
@@ -369,7 +369,7 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		drawHLine(canvas, lCol1, lCol5, y+rowH, lineColor)
 		drawVLine(canvas, lCol1, y, y+rowH, lineColor)
 		drawVLine(canvas, lCol5, y, y+rowH, lineColor)
-		drawText(canvas, lCol1+10, y+20, "-", s.fontSmall, black)
+		drawText(canvas, lCol1+10, y+32, "-", s.fontSmall, black)
 		y += rowH
 	}
 
@@ -394,10 +394,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	drawVLine(canvas, dCol4, dHeaderY, dHeaderY+rowH, lineColor)
 	drawVLine(canvas, dCol5, dHeaderY, dHeaderY+rowH, lineColor)
 
-	drawText(canvas, dCol1+10, dHeaderY+20, "Jenis Denda", s.fontSmBold, black)
-	drawText(canvas, dCol2+10, dHeaderY+20, "Pengurangan", s.fontSmBold, black)
-	drawText(canvas, dCol3+10, dHeaderY+20, "Jumlah", s.fontSmBold, black)
-	drawText(canvas, dCol4+10, dHeaderY+20, "Total", s.fontSmBold, black)
+	drawText(canvas, dCol1+10, dHeaderY+32, "Jenis Denda", s.fontSmBold, black)
+	drawText(canvas, dCol2+10, dHeaderY+32, "Pengurangan", s.fontSmBold, black)
+	drawText(canvas, dCol3+10, dHeaderY+32, "Jumlah", s.fontSmBold, black)
+	drawText(canvas, dCol4+10, dHeaderY+32, "Total", s.fontSmBold, black)
 
 	y = dHeaderY + rowH
 	for _, item := range dendaItems {
@@ -408,10 +408,10 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		drawVLine(canvas, dCol4, y, y+rowH, lineColor)
 		drawVLine(canvas, dCol5, y, y+rowH, lineColor)
 
-		drawText(canvas, dCol1+10, y+20, item.Name, s.fontSmall, black)
-		drawTextRight(canvas, dCol3-10, y+20, item.Intensif, s.fontSmall, black)
-		drawText(canvas, dCol3+10, y+20, item.Qty, s.fontSmall, black)
-		drawTextRight(canvas, dCol5-10, y+20, item.Total, s.fontSmall, black)
+		drawText(canvas, dCol1+10, y+32, item.Name, s.fontSmall, black)
+		drawTextRight(canvas, dCol3-10, y+32, item.Intensif, s.fontSmall, black)
+		drawText(canvas, dCol3+10, y+32, item.Qty, s.fontSmall, black)
+		drawTextRight(canvas, dCol5-10, y+32, item.Total, s.fontSmall, black)
 		y += rowH
 	}
 
@@ -419,7 +419,7 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		drawHLine(canvas, dCol1, dCol5, y+rowH, lineColor)
 		drawVLine(canvas, dCol1, y, y+rowH, lineColor)
 		drawVLine(canvas, dCol5, y, y+rowH, lineColor)
-		drawText(canvas, dCol1+10, y+20, "-", s.fontSmall, black)
+		drawText(canvas, dCol1+10, y+32, "-", s.fontSmall, black)
 		y += rowH
 	}
 
@@ -433,15 +433,15 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	totalBoxLeft := leftMargin
 	totalBoxRight := leftMargin + 600
 	totalBoxH := 70 // Row 1 height
-	
+
 	// Top Header box
 	drawRect(canvas, totalBoxLeft, y, totalBoxRight, y+totalBoxH, totalBg)
 	drawHLine(canvas, totalBoxLeft, totalBoxRight, y, lineColor)
 	drawVLine(canvas, totalBoxLeft, y, y+totalBoxH, lineColor)
 	drawVLine(canvas, totalBoxRight, y, y+totalBoxH, lineColor)
-	
+
 	headerWidth := (&font.Drawer{Face: s.fontBold}).MeasureString("TOTAL PENDAPATAN") / 64
-	textX := totalBoxLeft + (600 - int(headerWidth))/2
+	textX := totalBoxLeft + (600-int(headerWidth))/2
 	drawText(canvas, textX, y+48, "TOTAL PENDAPATAN", s.fontBold, black)
 
 	// Bottom Value box
@@ -450,18 +450,18 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	drawVLine(canvas, totalBoxLeft, y, y+totalBoxH, lineColor)
 	drawVLine(canvas, totalBoxRight, y, y+totalBoxH, lineColor)
 	drawHLine(canvas, totalBoxLeft, totalBoxRight, y+totalBoxH, lineColor)
-	
+
 	valStr := formatRp(tx.TakeHomePay)
 	valWidth := (&font.Drawer{Face: s.fontBold}).MeasureString(valStr) / 64
-	valX := totalBoxLeft + (600 - int(valWidth))/2
+	valX := totalBoxLeft + (600-int(valWidth))/2
 	drawText(canvas, valX, y+48, valStr, s.fontBold, black)
-	
+
 	y += 180 // Spacer for signature
 
 	// ========== 6. STEMPEL + SIGNATURE ==========
 	sigX := leftMargin + 60
-	sigY := y - 30 
-	
+	sigY := y - 30
+
 	drawText(canvas, sigX, sigY, "Pare, "+issueDate, s.fontSmall, black)
 
 	stempelFile, err := os.Open(s.stempelPath)
@@ -473,9 +473,9 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 			dstRect := image.Rect(0, 0, targetW, targetH)
 			scaledStempel := image.NewRGBA(dstRect)
 			xdraw.CatmullRom.Scale(scaledStempel, dstRect, stempelImg, stempelImg.Bounds(), draw.Over, nil)
-			
-			stX := sigX - 10 
-			stY := sigY + 5 
+
+			stX := sigX - 10
+			stY := sigY + 5
 			draw.Draw(canvas, image.Rect(stX, stY, stX+targetW, stY+targetH), scaledStempel, image.Point{}, draw.Over)
 		}
 	}

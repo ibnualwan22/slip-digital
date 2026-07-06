@@ -184,7 +184,7 @@ func (h *PayrollHandler) SendSlipWA(c echo.Context) error {
 		"Nama: *" + tx.Employee.Name + "*\n" +
 		"Jabatan: *" + tx.Employee.Role + "*\n" +
 		"Periode: " + months[tx.Month] + " " + strconv.Itoa(tx.Year) + "\n\n" +
-		"Terima kasih atas dedikasi dan pengabdian Anda di Markaz Arabiyah. Semoga *Qolil Bilbarokah Khoir Min Katsir Bila Barokah*.\n\n" +
+		"Terima kasih atas dedikasi dan pengabdian Anda di Markaz Arabiyah. Semoga *Allah senantiasa melimpahkan keberkahan*.\n\n" +
 		"Ttd,\n*Karismaning Ulfa Awwalina, S.Pd*\nManager Keuangan Markaz Arabiyah"
 
 	err = h.waClient.SendImage(tx.Employee.PhoneWA, caption, imageBytes)
