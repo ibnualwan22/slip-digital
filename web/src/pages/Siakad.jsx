@@ -8,6 +8,7 @@ export default function Siakad() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     fetchSiakadData()
@@ -111,6 +112,10 @@ export default function Siakad() {
   const periode = data?.periode
   const pengajarList = data?.data || []
 
+  const filteredList = searchQuery.length >= 3 
+    ? pengajarList.filter(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase()))
+    : pengajarList
+
   return (
     <div>
       {/* HEADER INFO */}
@@ -128,15 +133,28 @@ export default function Siakad() {
             )}
           </div>
           <div>
-            <button className="btn btn-outline" style={{ borderColor: 'white', color: 'white' }} onClick={fetchSiakadData}>
-              <RefreshCw size={16} /> Refresh API
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }}/>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="Cari asatidz (min 3 huruf)..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ paddingLeft: '32px', width: '250px' }}
+                />
+              </div>
+              <button className="btn btn-outline" style={{ borderColor: 'white', color: 'white' }} onClick={fetchSiakadData}>
+                <RefreshCw size={16} /> Refresh API
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* LIST PENGAJAR */}
-      {pengajarList.map(p => (
+      {filteredList.map(p => (
         <div className="card" key={p.id} style={{ overflow: 'visible' }}>
           <div className="card-header" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center'}} onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
             <div style={{ flex: 1 }}>

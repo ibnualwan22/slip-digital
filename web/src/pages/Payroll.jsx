@@ -8,6 +8,7 @@ import Swal from 'sweetalert2'
 export default function Payroll() {
   const [payrolls, setPayrolls] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear())
@@ -121,6 +122,10 @@ export default function Payroll() {
     }
   }
 
+  const filteredPayrolls = searchQuery.length >= 3 
+    ? payrolls.filter(p => p.employee?.name?.toLowerCase().includes(searchQuery.toLowerCase())) 
+    : payrolls
+
   return (
     <div className="card">
       <div className="card-header">
@@ -142,6 +147,17 @@ export default function Payroll() {
             value={filterYear}
             onChange={(e) => setFilterYear(e.target.value)}
           />
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }}/>
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Cari asatidz (min 3 huruf)..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '32px', width: '250px' }}
+            />
+          </div>
           <button className="btn btn-primary" onClick={generatePayroll} disabled={loading}>
             <Plus size={18} /> Generate Draft Bulanan
           </button>
@@ -175,10 +191,10 @@ export default function Payroll() {
             <tbody>
               {loading ? (
                 <tr><td colSpan="7" style={{ textAlign: 'center' }}>Memuat data...</td></tr>
-              ) : payrolls.length === 0 ? (
+              ) : filteredPayrolls.length === 0 ? (
                 <tr><td colSpan="7" style={{ textAlign: 'center' }}>Belum ada data payroll untuk bulan ini</td></tr>
               ) : (
-                payrolls.map(p => {
+                filteredPayrolls.map(p => {
                   const statusConf = getStatusConfig(p.status)
                   return (
                     <tr key={p.id}>
