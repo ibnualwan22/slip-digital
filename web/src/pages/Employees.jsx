@@ -150,9 +150,11 @@ export default function Employees() {
       try {
         if (id) {
           await api.put(`/employees/${id}`, formValues)
+          if (formValues.siakad_id) { api.post('/siakad/sync-all', {}).catch(() => {}) }
           Swal.fire('Tersimpan', 'Data Asatidz berhasil diupdate', 'success')
         } else {
           await api.post('/employees', formValues)
+          if (formValues.siakad_id) { api.post('/siakad/sync-all', {}).catch(() => {}) }
           Swal.fire('Tersimpan', 'Asatidz baru berhasil ditambahkan', 'success')
         }
         loadEmployees()

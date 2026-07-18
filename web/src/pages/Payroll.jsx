@@ -32,13 +32,21 @@ export default function Payroll() {
     try {
       setLoading(true)
       await api.post(`/payroll/generate?month=${filterMonth}&year=${filterYear}`)
+      
+      // Auto-sync Siakad
+      try {
+        await api.post('/siakad/sync-all', { bulan: parseInt(filterMonth), tahun: parseInt(filterYear) })
+      } catch (e) {
+        console.error('Failed to auto-sync siakad', e)
+      }
+
       Swal.fire({
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
         timer: 3000,
         icon: 'success',
-        title: 'Draft slip gaji berhasil digenerate'
+        title: 'Draft slip gaji dan sinkronisasi SIAKAD berhasil'
       })
       loadPayrolls()
     } catch (e) {

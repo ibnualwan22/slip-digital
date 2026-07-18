@@ -245,25 +245,29 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 			rate = mengajarAct.DefaultRate
 		}
 
-		if mengajarAct == nil && len(activities) > 0 {
-			// fallback first addition
-			for _, a := range activities {
-				if a.Type == "ADDITION" {
-					mengajarAct = &a
-					break
-				}
+		if mengajarAct == nil {
+			newAct := domain.MasterActivity{
+				ID:           uuid.New(),
+				ActivityName: "Jam Mengajar",
+				Code:         "JAM_MENGAJAR",
+				Type:         domain.TypeAddition,
+				DefaultRate:  decimal.NewFromInt(0),
+				IsActive:     true,
+				CreatedAt:    time.Now(),
 			}
+			h.actRepo.Create(&newAct)
+			mengajarAct = &newAct
 		}
 
 		if mengajarAct != nil {
-			err = h.payService.AddDetail(&domain.PayrollDetail{
+			err = h.payService.UpsertDetail(&domain.PayrollDetail{
 				ID: uuid.New(),
 				PayrollTransactionID: tx.ID,
 				ActivityID: &mengajarAct.ID,
 				Quantity: decimal.NewFromFloat(float64(req.TotalJamMengajar)),
 				Rate: rate,
 				Type: domain.TypeAddition,
-				Description: "Sync SIAKAD",
+				Description: "Jam Mengajar",
 			})
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "Gagal sinkronisasi jam mengajar: "+err.Error())
@@ -282,26 +286,30 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 			}
 		}
 		
-		if dendaAct == nil && len(activities) > 0 {
-			// fallback first deduction
-			for _, a := range activities {
-				if a.Type == "DEDUCTION" {
-					dendaAct = &a
-					break
-				}
+		if dendaAct == nil {
+			newAct := domain.MasterActivity{
+				ID:           uuid.New(),
+				ActivityName: "Denda Terlambat",
+				Code:         "TERLAMBAT",
+				Type:         domain.TypeDeduction,
+				DefaultRate:  decimal.NewFromInt(1000),
+				IsActive:     true,
+				CreatedAt:    time.Now(),
 			}
+			h.actRepo.Create(&newAct)
+			dendaAct = &newAct
 		}
 
 		if dendaAct != nil {
 			dendaRate := decimal.NewFromInt(1000) // Rp 1000 per menit
-			err = h.payService.AddDetail(&domain.PayrollDetail{
+			err = h.payService.UpsertDetail(&domain.PayrollDetail{
 				ID: uuid.New(),
 				PayrollTransactionID: tx.ID,
 				ActivityID: &dendaAct.ID,
 				Quantity: decimal.NewFromFloat(float64(req.TotalTerlambatMenit)),
 				Rate: dendaRate,
 				Type: domain.TypeDeduction,
-				Description: fmt.Sprintf("Terlambat %d mnt (SIAKAD)", req.TotalTerlambatMenit),
+				Description: fmt.Sprintf("Terlambat %d mnt", req.TotalTerlambatMenit),
 			})
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "Gagal sinkronisasi denda: "+err.Error())
@@ -314,5 +322,185 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Data berhasil disinkronisasi ke payroll",
+	})
+}
+
+// 4. Bulk Sync
+func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
+	var req struct {
+		Bulan int `json:"bulan"`
+		Tahun int `json:"tahun"`
+	}
+	_ = c.Bind(&req)
+
+	now := time.Now()
+	bulan := req.Bulan
+	if bulan == 0 {
+		bulan = int(now.Month())
+	}
+	tahun := req.Tahun
+	if tahun == 0 {
+		tahun = now.Year()
+	}
+
+	// 1. Fetch Siakad Data
+	httpReq, err := http.NewRequest("GET", h.cfg.SiakadAPIURL, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	httpReq.Header.Set("x-api-key", h.cfg.SiakadAPIKey)
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return echo.NewHTTPError(http.StatusBadGateway, "Failed to connect to SIAKAD API")
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	employees, err := h.empRepo.List(nil, true)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch employees")
+	}
+
+	siakadMap := make(map[string]domain.Employee)
+	for _, emp := range employees {
+		if emp.SiakadID != nil && *emp.SiakadID != "" {
+			siakadMap[*emp.SiakadID] = emp
+		}
+	}
+
+	activities, _ := h.actRepo.List(true)
+	var mengajarAct *domain.MasterActivity
+	var dendaAct *domain.MasterActivity
+	for _, a := range activities {
+		if a.Type == "ADDITION" && (a.Code == "MENGAJAR" || a.Code == "JAM_MENGAJAR") && mengajarAct == nil {
+			mengajarAct = &a
+		}
+		if a.Type == "DEDUCTION" && (a.Code == "DENDA" || a.Code == "TERLAMBAT") && dendaAct == nil {
+			dendaAct = &a
+		}
+	}
+	if mengajarAct == nil {
+		newAct := domain.MasterActivity{
+			ID:           uuid.New(),
+			ActivityName: "Jam Mengajar",
+			Code:         "JAM_MENGAJAR",
+			Type:         domain.TypeAddition,
+			DefaultRate:  decimal.NewFromInt(0),
+			IsActive:     true,
+			CreatedAt:    time.Now(),
+		}
+		h.actRepo.Create(&newAct)
+		mengajarAct = &newAct
+	}
+
+	if dendaAct == nil {
+		newAct := domain.MasterActivity{
+			ID:           uuid.New(),
+			ActivityName: "Denda Terlambat",
+			Code:         "TERLAMBAT",
+			Type:         domain.TypeDeduction,
+			DefaultRate:  decimal.NewFromInt(1000),
+			IsActive:     true,
+			CreatedAt:    time.Now(),
+		}
+		h.actRepo.Create(&newAct)
+		dendaAct = &newAct
+	}
+	
+	sycnedCount := 0
+
+	if dataList, ok := result["data"].([]interface{}); ok {
+		for _, item := range dataList {
+			pengajar := item.(map[string]interface{})
+			idStr := fmt.Sprintf("%v", pengajar["id"])
+			
+			localEmp, found := siakadMap[idStr]
+			if !found {
+				continue
+			}
+
+			// Ensure Draft Payroll
+			err := h.payService.EnsurePayrollForEmployee(localEmp.ID, bulan, tahun)
+			if err != nil {
+				continue
+			}
+			
+			txs, _ := h.payService.ListTransactions(bulan, tahun)
+			var tx *domain.PayrollTransaction
+			for _, t := range txs {
+				if t.EmployeeID == localEmp.ID && t.Status == domain.StatusDraft {
+					tx = &t
+					break
+				}
+			}
+			if tx == nil {
+				continue
+			}
+
+			// extract totals
+			totalJam := 0
+			if val, ok := pengajar["jumlahAbsenTerverifikasi"]; ok && val != nil {
+				totalJam = int(val.(float64))
+			}
+			totalTerlambat := 0
+			if absenDetailRaw, ok := pengajar["absenDetail"]; ok && absenDetailRaw != nil {
+				if absenList, isArr := absenDetailRaw.([]interface{}); isArr {
+					for _, a := range absenList {
+						absen, isMap := a.(map[string]interface{})
+						if isMap {
+							if tVal, has := absen["terlambatMenit"]; has && tVal != nil {
+								totalTerlambat += int(tVal.(float64))
+							}
+						}
+					}
+				}
+			}
+
+			// Sync Jam Mengajar
+			if totalJam > 0 {
+				rate := decimal.Zero
+				if localEmp.HourlyRate != nil && localEmp.HourlyRate.GreaterThan(decimal.Zero) {
+					rate = *localEmp.HourlyRate
+				} else if localEmp.Category != nil && localEmp.Category.HourlyRate.GreaterThan(decimal.Zero) {
+					rate = localEmp.Category.HourlyRate
+				} else {
+					rate = mengajarAct.DefaultRate
+				}
+
+				h.payService.UpsertDetail(&domain.PayrollDetail{
+					ID: uuid.New(),
+					PayrollTransactionID: tx.ID,
+					ActivityID: &mengajarAct.ID,
+					Quantity: decimal.NewFromFloat(float64(totalJam)),
+					Rate: rate,
+					Type: domain.TypeAddition,
+					Description: "Jam Mengajar",
+				})
+			}
+
+			// Sync Terlambat
+			if totalTerlambat > 0 {
+				dendaRate := decimal.NewFromInt(1000)
+				h.payService.UpsertDetail(&domain.PayrollDetail{
+					ID: uuid.New(),
+					PayrollTransactionID: tx.ID,
+					ActivityID: &dendaAct.ID,
+					Quantity: decimal.NewFromFloat(float64(totalTerlambat)),
+					Rate: dendaRate,
+					Type: domain.TypeDeduction,
+					Description: fmt.Sprintf("Terlambat %d mnt", totalTerlambat),
+				})
+			}
+
+			sycnedCount++
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Berhasil mensinkronisasi data untuk %d pengajar", sycnedCount),
 	})
 }

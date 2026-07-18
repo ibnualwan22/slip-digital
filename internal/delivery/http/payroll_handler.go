@@ -13,6 +13,7 @@ import (
 	"github.com/ibnualwan/bisyaroh/pkg/response"
 	"github.com/ibnualwan/bisyaroh/pkg/whatsapp"
 	"github.com/labstack/echo/v4"
+	"github.com/shopspring/decimal"
 )
 
 type PayrollHandler struct {
@@ -253,6 +254,49 @@ func (h *PayrollHandler) UpdateStatus(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "status updated", nil)
+}
+
+func (h *PayrollHandler) UpdateDetail(c echo.Context) error {
+	detailId, err := uuid.Parse(c.Param("detailId"))
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid detail id")
+	}
+
+	var req struct {
+		ActivityID  *string         `json:"activity_id"`
+		Quantity    decimal.Decimal `json:"quantity"`
+		Rate        decimal.Decimal `json:"rate"`
+		Description string          `json:"description"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, err.Error())
+	}
+
+	detail, err := h.service.GetDetail(detailId)
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "detail not found")
+	}
+
+	if req.ActivityID != nil && *req.ActivityID != "" {
+		actId, err := uuid.Parse(*req.ActivityID)
+		if err == nil {
+			detail.ActivityID = &actId
+		}
+	} else if req.ActivityID != nil && *req.ActivityID == "" {
+		detail.ActivityID = nil
+	}
+
+	detail.Quantity = req.Quantity
+	detail.Rate = req.Rate
+	detail.Description = req.Description
+
+	err = h.service.UpdateDetail(detail)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, err.Error())
+	}
+
+	return response.Success(c, http.StatusOK, "detail updated successfully", nil)
 }
 
 func (h *PayrollHandler) BulkSendWA(c echo.Context) error {

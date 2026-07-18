@@ -52,6 +52,7 @@ func SetupRouter(
 
 	payroll.GET("/:id/details", payrollHandler.ListDetails)
 	payroll.POST("/:id/details", payrollHandler.AddDetail)
+	payroll.PUT("/details/:detailId", payrollHandler.UpdateDetail)
 	payroll.DELETE("/details/:detailId", payrollHandler.RemoveDetail)
 	payroll.POST("/:id/calculate", payrollHandler.CalculateTHP)
 	payroll.POST("/:id/status", payrollHandler.UpdateStatus)
@@ -71,6 +72,7 @@ func SetupRouter(
 		siakad := api.Group("/siakad")
 		siakad.GET("/pengajar", siakadHandler.GetPengajar)
 		siakad.PUT("/pengajar/terlambat", siakadHandler.UpdateTerlambat)
+		siakad.POST("/sync-all", siakadHandler.SyncAllToPayroll)
 		siakad.POST("/pengajar/:siakadId/sync", siakadHandler.SyncToPayroll)
 	}
 }

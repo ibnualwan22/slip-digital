@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, CheckCircle, Share2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, CheckCircle, Share2, RefreshCw, Pencil } from 'lucide-react'
 import api from '../api'
 import { formatRupiah, getMonthName, getStatusConfig, formatRupiahInput, parseRupiahInput } from '../utils/formatter'
 import Swal from 'sweetalert2'
@@ -36,16 +36,23 @@ export default function PayrollDetail() {
     }
   }
 
-  const showDetailForm = async () => {
-    // Generate options exactly like vanilla
-    const actOptions = activities.map(a => 
-      `<option value="${a.id}" data-type="${a.type}" data-rate="${a.default_rate}">
+  const showDetailForm = async (type, existingDetail = null) => {
+    try {
+      // Filter activities by type (ADDITION or DEDUCTION)
+    const filteredActivities = activities.filter(a => a.type === type)
+    const typeLabel = type === 'ADDITION' ? 'Pemasukan' : 'Potongan'
+    
+    let actOptions = filteredActivities.map(a => 
+      `<option value="${a.id}" data-type="${a.type}" data-rate="${a.default_rate}" ${existingDetail && existingDetail.activity_id === a.id ? 'selected' : ''}>
         [${a.type === 'ADDITION' ? '+' : '-'}] ${a.activity_name} (Rp ${Number(a.default_rate).toLocaleString('id-ID')})
       </option>`
     ).join('')
+    if (existingDetail && !existingDetail.activity_id) {
+       actOptions = `<option value="" selected>-- Manual --</option>` + actOptions
+    }
 
     const { value: formValues } = await Swal.fire({
-      title: 'Tambah Variabel (Manual)',
+      title: `${existingDetail ? 'Edit' : 'Tambah'} ${typeLabel}`,
       html: `
           <div class="form-group" style="text-align: left;">
               <label class="form-label">Aktivitas</label>
@@ -57,16 +64,16 @@ export default function PayrollDetail() {
           <div class="form-row">
               <div class="form-group" style="text-align: left;">
                   <label class="form-label">Qty / Jumlah (Misal: 4 pertemuan)</label>
-                  <input type="number" id="swal-det-qty" class="form-control" value="1" min="1">
+                  <input type="number" id="swal-det-qty" class="form-control" value="${existingDetail ? existingDetail.quantity : 1}" min="1">
               </div>
               <div class="form-group" style="text-align: left;">
                   <label class="form-label">Rate / Harga Satuan (Rp)</label>
-                  <input type="text" id="swal-det-rate" class="form-control" placeholder="0">
+                  <input type="text" id="swal-det-rate" class="form-control" value="${existingDetail ? formatRupiahInput(existingDetail.rate.toString()) : ''}" placeholder="0">
               </div>
           </div>
           <div class="form-group" style="text-align: left;">
               <label class="form-label">Keterangan Opsional</label>
-              <input type="text" id="swal-det-desc" class="form-control" placeholder="Misal: untuk kelas A">
+              <input type="text" id="swal-det-desc" class="form-control" value="${existingDetail ? (existingDetail.description || '') : ''}" placeholder="Misal: untuk kelas A">
           </div>
       `,
       didOpen: () => {
@@ -110,13 +117,24 @@ export default function PayrollDetail() {
     })
 
     if (formValues) {
+      Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() })
       try {
-        await api.post(`/payroll/${id}/details`, formValues)
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Berhasil ditambahkan', showConfirmButton: false, timer: 1500 })
+        if (existingDetail) {
+          await api.put(`/payroll/details/${existingDetail.id}`, formValues)
+        } else {
+          await api.post(`/payroll/${id}/details`, formValues)
+        }
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Berhasil disimpan', showConfirmButton: false, timer: 1500 })
         loadData()
-      } catch (e) { }
+      } catch (e) {
+        Swal.fire('Error', e.response?.data?.message || 'Gagal menyimpan detail', 'error')
+      }
     }
+  } catch (e) {
+    console.error(e)
+    Swal.fire('Error UI', 'Gagal memuat form: ' + e.message, 'error')
   }
+}
 
   const deleteDetail = async (detailId) => {
     const result = await Swal.fire({
@@ -145,9 +163,13 @@ export default function PayrollDetail() {
     try {
       Swal.fire({ title: 'Loading preview...', didOpen: () => Swal.showLoading() })
       const res = await api.get(`/payroll/${id}/wa-preview`)
+      const base64Str = res.image_base64 || res.data?.image_base64 || (res.data ? res.data.data?.image_base64 : '')
+      
       Swal.fire({
         title: 'Preview WhatsApp',
-        html: `<div style="text-align: left; background: #F8FAFC; padding: 16px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 13px; max-height: 400px; overflow-y: auto; border: 1px solid #E2E8F0">${res.data}</div>`,
+        html: `<div style="text-align: center; background: #F8FAFC; padding: 16px; border-radius: 8px; border: 1px solid #E2E8F0">
+                 <img src="data:image/png;base64,${base64Str}" style="max-width: 100%; border-radius: 4px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);" />
+               </div>`,
         width: '600px',
         showCancelButton: true,
         confirmButtonText: 'Kirim via WA API',
@@ -160,7 +182,9 @@ export default function PayrollDetail() {
           Swal.fire('Sukses', 'Pesan WhatsApp berhasil diproses', 'success')
         }
       })
-    } catch (e) { }
+    } catch (e) {
+      Swal.fire('Error', e.response?.data?.message || 'Gagal menyiapkan preview', 'error')
+    }
   }
 
   if (loading && !tx) {
@@ -203,8 +227,11 @@ export default function PayrollDetail() {
       </div>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-        <button className="btn btn-primary" onClick={showDetailForm} disabled={tx?.status !== 'DRAFT'}>
-          <Plus size={18} /> Tambah Variabel Manual
+        <button className="btn btn-primary" style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => showDetailForm('ADDITION')} disabled={tx?.status !== 'DRAFT'}>
+          <Plus size={18} /> Tambah Pemasukan
+        </button>
+        <button className="btn btn-primary" style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => showDetailForm('DEDUCTION')} disabled={tx?.status !== 'DRAFT'}>
+          <Plus size={18} /> Tambah Potongan
         </button>
         <button className="btn btn-success" style={{ background: '#10B981', color: 'white', border: 'none' }} onClick={previewWA}>
           <Share2 size={18} /> Preview & Kirim WA
@@ -255,8 +282,11 @@ export default function PayrollDetail() {
                       <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
                       <td>
-                         {tx?.status === 'DRAFT' && (
-                           <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
+                         {tx?.status === 'DRAFT' && d.description !== 'Gaji Pokok' && d.description !== 'Tunjangan Struktural' && (
+                           <>
+                             <button className="btn-icon edit" style={{ marginRight: '8px', color: '#3b82f6', background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => showDetailForm('ADDITION', d)}><Pencil size={16} /></button>
+                             <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
+                           </>
                          )}
                       </td>
                     </tr>
@@ -298,11 +328,14 @@ export default function PayrollDetail() {
                         {d.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.description}</div>}
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {formatRupiah(d.rate)}</div>
                       </td>
-                      <td style={{ textAlign: 'right' }}>{d.qty}x</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.amount)}</td>
+                      <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
                       <td>
                          {tx?.status === 'DRAFT' && (
-                           <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
+                           <>
+                             <button className="btn-icon edit" style={{ marginRight: '8px', color: '#3b82f6', background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => showDetailForm('DEDUCTION', d)}><Pencil size={16} /></button>
+                             <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
+                           </>
                          )}
                       </td>
                     </tr>

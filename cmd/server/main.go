@@ -37,7 +37,7 @@ func main() {
 
 	// Initialize WA Services
 	waClient := whatsapp.NewWhatsAppClient(cfg.WA_API_URL, cfg.WA_API_KEY, cfg.WA_SESSION)
-	slipGen, err := generator.NewSlipGenerator("web/assets/img/sampul-slip.png", "web/assets/img/stempel-slip.png")
+	slipGen, err := generator.NewSlipGenerator("web/public/img/sampul-slip.png", "web/public/img/stempel-slip.png")
 	if err != nil {
 		log.Fatalf("Failed to initialize slip generator: %v", err)
 	}

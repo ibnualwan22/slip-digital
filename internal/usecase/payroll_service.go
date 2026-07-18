@@ -22,6 +22,8 @@ type PayrollService interface {
 	CalculateTransactionTHP(txID uuid.UUID) error
 	UpdateStatus(txID uuid.UUID, status domain.PayrollStatus) error
 	EnsurePayrollForEmployee(empID uuid.UUID, month, year int) error
+	UpsertDetail(detail *domain.PayrollDetail) error
+	GetDetail(id uuid.UUID) (*domain.PayrollDetail, error)
 }
 
 type payrollService struct {
@@ -129,11 +131,36 @@ func (s *payrollService) AddDetail(detail *domain.PayrollDetail) error {
 	return err
 }
 
+func (s *payrollService) UpsertDetail(detail *domain.PayrollDetail) error {
+	details, err := s.repo.GetDetailsByTransactionID(detail.PayrollTransactionID)
+	if err == nil {
+		for _, d := range details {
+			if d.ActivityID != nil && detail.ActivityID != nil && *d.ActivityID == *detail.ActivityID {
+				// Update existing instead
+				d.Quantity = detail.Quantity
+				d.Description = detail.Description
+				d.Rate = detail.Rate
+				d.TotalAmount = detail.TotalAmount
+				return s.UpdateDetail(&d)
+			}
+		}
+	}
+	return s.AddDetail(detail)
+}
+
 func (s *payrollService) UpdateDetail(detail *domain.PayrollDetail) error {
 	if !detail.Quantity.IsZero() && !detail.Rate.IsZero() {
 		detail.TotalAmount = detail.Quantity.Mul(detail.Rate)
 	}
-	return s.repo.UpdateDetail(detail)
+	err := s.repo.UpdateDetail(detail)
+	if err == nil {
+		s.CalculateTransactionTHP(detail.PayrollTransactionID)
+	}
+	return err
+}
+
+func (s *payrollService) GetDetail(id uuid.UUID) (*domain.PayrollDetail, error) {
+	return s.repo.GetDetailByID(id)
 }
 
 func (s *payrollService) RemoveDetail(id uuid.UUID) error {
