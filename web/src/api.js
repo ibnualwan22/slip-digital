@@ -24,6 +24,16 @@ const api = {
   post: (endpoint, data) => request(endpoint, 'POST', data),
   put: (endpoint, data) => request(endpoint, 'PUT', data),
   delete: (endpoint) => request(endpoint, 'DELETE'),
+  upload: async (endpoint, formData) => {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      body: formData,
+      cache: 'no-store',
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message || 'Upload gagal');
+    return result;
+  },
 };
 
 export default api;

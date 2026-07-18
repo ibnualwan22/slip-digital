@@ -20,9 +20,17 @@ type Config struct {
 	WA_API_URL string
 	WA_API_KEY string
 	WA_SESSION string
-	
+
 	SiakadAPIURL string
 	SiakadAPIKey string
+
+	// Gemini AI
+	GeminiAPIKey string
+
+	// Cloudinary
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
 }
 
 func LoadConfig() *Config {
@@ -67,6 +75,10 @@ func LoadConfig() *Config {
 		WA_SESSION: os.Getenv("WA_SESSION_ID"),
 		SiakadAPIURL: os.Getenv("SIAKAD_API_URL"),
 		SiakadAPIKey: os.Getenv("SIAKAD_API_KEY"),
+		GeminiAPIKey:        os.Getenv("API_GEMINI"),
+		CloudinaryCloudName: os.Getenv("CLOUDE_NAME"),
+		CloudinaryAPIKey:    os.Getenv("API_KEY_CLOUDINARY"),
+		CloudinaryAPISecret: os.Getenv("API_SECRET_CLOUDINARY"),
 	}
 }
 
@@ -77,6 +89,8 @@ func migrateAndSeed(db *gorm.DB) {
 		&domain.Employee{},
 		&domain.PayrollTransaction{},
 		&domain.PayrollDetail{},
+		&domain.ExpenseReport{},
+		&domain.ExpenseItem{},
 	)
 	if err != nil {
 		log.Printf("Failed to auto migrate database schema: %v\n", err)

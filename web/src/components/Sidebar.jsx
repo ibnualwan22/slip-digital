@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Layers, Users, List, Receipt, Link2, X } from 'lucide-react'
+import { LayoutGrid, Layers, Users, List, Receipt, Link2, X, ShoppingCart } from 'lucide-react'
 
 export default function Sidebar({ isOpen, onClose }) {
   return (
@@ -50,6 +50,12 @@ export default function Sidebar({ isOpen, onClose }) {
           <NavLink to="/payroll" onClick={onClose} className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
             <Receipt size={20} />
             <span>Transaksi Payroll</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/expenses" onClick={onClose} className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
+            <ShoppingCart size={20} />
+            <span>Pengeluaran</span>
           </NavLink>
         </li>
         

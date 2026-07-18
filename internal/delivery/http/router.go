@@ -13,6 +13,7 @@ func SetupRouter(
 	payrollHandler *PayrollHandler,
 	categoryHandler *CategoryHandler,
 	siakadHandler *SiakadHandler,
+	expenseHandler *ExpenseHandler,
 ) {
 	// Health check / Root endpoint
 	e.GET("/", func(c echo.Context) error {
@@ -74,5 +75,20 @@ func SetupRouter(
 		siakad.PUT("/pengajar/terlambat", siakadHandler.UpdateTerlambat)
 		siakad.POST("/sync-all", siakadHandler.SyncAllToPayroll)
 		siakad.POST("/pengajar/:siakadId/sync", siakadHandler.SyncToPayroll)
+	}
+
+	// Expense (Laporan Pengeluaran) Routes
+	if expenseHandler != nil {
+		expenses := auth.Group("/expenses")
+		expenses.GET("", expenseHandler.ListReports)
+		expenses.POST("", expenseHandler.CreateReport)
+		expenses.GET("/:id", expenseHandler.GetReport)
+		expenses.DELETE("/:id", expenseHandler.DeleteReport)
+		expenses.POST("/:id/items", expenseHandler.AddItem)
+		expenses.DELETE("/items/:itemId", expenseHandler.DeleteItem)
+		expenses.POST("/:id/tashih-all", expenseHandler.TashihAll)
+		expenses.POST("/upload", expenseHandler.UploadBukti)
+		expenses.POST("/scan-receipt", expenseHandler.ScanReceipt)
+		expenses.POST("/scan-receipt-url", expenseHandler.ScanReceiptFromURL)
 	}
 }

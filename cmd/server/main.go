@@ -29,6 +29,7 @@ func main() {
 	actRepo := postgres.NewActivityRepository(cfg.DB)
 	payRepo := postgres.NewPayrollRepository(cfg.DB)
 	catRepo := postgres.NewCategoryRepository(cfg.DB)
+	expRepo := postgres.NewExpenseRepository(cfg.DB)
 
 	// Note: We need to initialize payrollService first to inject it into employeeService but 
 	// payrollService also needs empRepo.
@@ -48,9 +49,11 @@ func main() {
 	payHandler := delivery.NewPayrollHandler(payService, empRepo, waClient, slipGen)
 	catHandler := delivery.NewCategoryHandler(catRepo)
 	siakadHandler := delivery.NewSiakadHandler(cfg, empRepo, actRepo, payService)
+	expService := usecase.NewExpenseService(expRepo, cfg.GeminiAPIKey)
+	expHandler := delivery.NewExpenseHandler(expService, cfg.CloudinaryCloudName, cfg.CloudinaryAPIKey, cfg.CloudinaryAPISecret)
 
 	// Setup Routes
-	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler)
+	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler)
 
 	// Serve static files (React build output)
 	e.Static("/img", "web/public/img")

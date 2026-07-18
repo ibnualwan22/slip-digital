@@ -7,6 +7,8 @@ import Activities from './pages/Activities'
 import Payroll from './pages/Payroll'
 import PayrollDetail from './pages/PayrollDetail'
 import Siakad from './pages/Siakad'
+import ExpenseReport from './pages/ExpenseReport'
+import ExpenseReportDetail from './pages/ExpenseReportDetail'
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="payroll" element={<Payroll />} />
         <Route path="payroll/:id" element={<PayrollDetail />} />
         <Route path="siakad" element={<Siakad />} />
+        <Route path="expenses" element={<ExpenseReport />} />
+        <Route path="expenses/:id" element={<ExpenseReportDetail />} />
       </Route>
     </Routes>
   )
