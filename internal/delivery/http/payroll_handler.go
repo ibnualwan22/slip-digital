@@ -92,12 +92,12 @@ func (h *PayrollHandler) AddDetail(c echo.Context) error {
 
 	var detail domain.PayrollDetail
 	if err := c.Bind(&detail); err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid request body")
+		return response.Error(c, http.StatusBadRequest, "invalid request body: "+err.Error())
 	}
 	detail.PayrollTransactionID = txID
 
 	if err := h.service.AddDetail(&detail); err != nil {
-		return response.Error(c, http.StatusInternalServerError, "failed to add detail")
+		return response.Error(c, http.StatusInternalServerError, "failed to add detail: "+err.Error())
 	}
 
 	return response.Success(c, http.StatusCreated, "detail added", detail)

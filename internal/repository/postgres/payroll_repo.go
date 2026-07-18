@@ -33,13 +33,15 @@ func (r *payrollRepository) GetTransactionByID(id uuid.UUID) (*domain.PayrollTra
 
 func (r *payrollRepository) ListTransactions(month, year int) ([]domain.PayrollTransaction, error) {
 	var txs []domain.PayrollTransaction
-	query := r.db.Preload("Employee").Preload("Employee.Category")
+	query := r.db.Preload("Employee").Preload("Employee.Category").
+		Joins("JOIN employees ON employees.id = payroll_transactions.employee_id").
+		Where("employees.is_active = ?", true)
 	
 	if month > 0 {
-		query = query.Where("month = ?", month)
+		query = query.Where("payroll_transactions.month = ?", month)
 	}
 	if year > 0 {
-		query = query.Where("year = ?", year)
+		query = query.Where("payroll_transactions.year = ?", year)
 	}
 
 	err := query.Find(&txs).Error

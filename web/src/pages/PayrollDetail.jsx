@@ -109,6 +109,7 @@ export default function PayrollDetail() {
         }
         return {
           activity_id: actId,
+          type: type,
           quantity: parseFloat(document.getElementById('swal-det-qty').value) || 1,
           rate: parseRupiahInput(document.getElementById('swal-det-rate').value),
           description: document.getElementById('swal-det-desc').value
