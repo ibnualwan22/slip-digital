@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Eye, Share2, Printer, CheckCircle, Search } from 'lucide-react'
+import { Plus, Eye, Share2, Printer, CheckCircle, Search, RefreshCw } from 'lucide-react'
 import api from '../api'
 import { formatRupiah, getMonthName, getStatusConfig } from '../utils/formatter'
 import Swal from 'sweetalert2'
@@ -81,6 +81,17 @@ export default function Payroll() {
     }
   }
 
+  const syncSiakad = async () => {
+    Swal.fire({ title: 'Menyinkronkan Siakad...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+    try {
+      await api.post('/siakad/sync-all', { bulan: parseInt(filterMonth), tahun: parseInt(filterYear) })
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Siakad tersinkronisasi', showConfirmButton: false, timer: 1500 })
+      loadPayrolls()
+    } catch (e) {
+      Swal.fire('Error', e.response?.data?.message || 'Gagal sinkronisasi Siakad', 'error')
+    }
+  }
+
   const confirmAll = async () => {
     const drafts = payrolls.filter(p => p.status === 'DRAFT')
     if (drafts.length === 0) {
@@ -133,6 +144,9 @@ export default function Payroll() {
           />
           <button className="btn btn-primary" onClick={generatePayroll} disabled={loading}>
             <Plus size={18} /> Generate Draft Bulanan
+          </button>
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={syncSiakad} disabled={loading}>
+            <RefreshCw size={18} /> Tarik KBM Siakad
           </button>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>

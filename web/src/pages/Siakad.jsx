@@ -88,8 +88,8 @@ export default function Siakad() {
       Swal.fire({ title: 'Syncing...', didOpen: () => Swal.showLoading() })
       try {
         await api.post(`/siakad/pengajar/${pengajar.id}/sync`, {
-          total_jam_mengajar: pengajar.jumlahAbsenTerverifikasi,
-          total_terlambat_menit: pengajar.totalTerlambatMenit
+          totalJamMengajar: pengajar.jumlahAbsenTerverifikasi,
+          totalTerlambatMenit: pengajar.totalTerlambatMenit
         })
         Swal.fire('Sukses', 'Data berhasil disinkronisasi ke slip gaji DRAFT bulan ini.', 'success')
       } catch (e) {
