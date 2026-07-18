@@ -212,7 +212,7 @@ func (s *payrollService) CalculateTransactionTHP(txID uuid.UUID) error {
 	// 1. Recalculate JAM_AJAR items based on employee override > category rules
 	seventy := decimal.NewFromInt(70)
 	for i, detail := range details {
-		if detail.Activity != nil && detail.Activity.Code == "JAM_AJAR" && emp.Category != nil {
+		if detail.Activity != nil && (detail.Activity.Code == "JAM_AJAR" || detail.Activity.Code == "JAM_MENGAJAR") && emp.Category != nil {
 			switch emp.Category.CalcMethod {
 			case "PROPORTIONAL": // S2
 				if !emp.Category.TargetIncentive.IsZero() {

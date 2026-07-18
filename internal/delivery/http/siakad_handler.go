@@ -229,7 +229,7 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 		activities, err := h.actRepo.List(true)
 		var mengajarAct *domain.MasterActivity
 		for _, a := range activities {
-			if a.Type == "ADDITION" && (a.Code == "MENGAJAR" || a.Code == "JAM_MENGAJAR") {
+			if a.Type == "ADDITION" && (a.Code == "JAM_AJAR" || a.Code == "MENGAJAR" || a.Code == "JAM_MENGAJAR") {
 				mengajarAct = &a
 				break
 			}
