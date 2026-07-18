@@ -12,6 +12,7 @@ func SetupRouter(
 	activityHandler *ActivityHandler,
 	payrollHandler *PayrollHandler,
 	categoryHandler *CategoryHandler,
+	siakadHandler *SiakadHandler,
 ) {
 	// Health check / Root endpoint
 	e.GET("/", func(c echo.Context) error {
@@ -44,13 +45,17 @@ func SetupRouter(
 	payroll := auth.Group("/payroll")
 	payroll.GET("", payrollHandler.ListTransactions)
 	payroll.POST("", payrollHandler.CreateTransaction)
+	payroll.POST("/generate", payrollHandler.GeneratePayroll)
+	payroll.POST("/bulk-send", payrollHandler.BulkSendWA)
 	payroll.GET("/:id", payrollHandler.GetTransaction)
 	payroll.DELETE("/:id", payrollHandler.DeleteTransaction)
-	
+
+	payroll.GET("/:id/details", payrollHandler.ListDetails)
 	payroll.POST("/:id/details", payrollHandler.AddDetail)
 	payroll.DELETE("/details/:detailId", payrollHandler.RemoveDetail)
 	payroll.POST("/:id/calculate", payrollHandler.CalculateTHP)
-	payroll.GET("/:id/preview-wa", payrollHandler.PreviewSlipWA)
+	payroll.POST("/:id/status", payrollHandler.UpdateStatus)
+	payroll.GET("/:id/wa-preview", payrollHandler.PreviewSlipWA)
 	payroll.POST("/:id/send-wa", payrollHandler.SendSlipWA)
 
 	// Category Routes
@@ -60,4 +65,12 @@ func SetupRouter(
 	categories.GET("/:id", categoryHandler.Get)
 	categories.PUT("/:id", categoryHandler.Update)
 	categories.DELETE("/:id", categoryHandler.Delete)
+
+	// Siakad Routes
+	if siakadHandler != nil {
+		siakad := api.Group("/siakad")
+		siakad.GET("/pengajar", siakadHandler.GetPengajar)
+		siakad.PUT("/pengajar/terlambat", siakadHandler.UpdateTerlambat)
+		siakad.POST("/pengajar/:siakadId/sync", siakadHandler.SyncToPayroll)
+	}
 }

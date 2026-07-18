@@ -17,13 +17,15 @@ import (
 
 type PayrollHandler struct {
 	service  usecase.PayrollService
+	empRepo  domain.EmployeeRepository
 	waClient whatsapp.WhatsAppClient
 	slipGen  generator.SlipGenerator
 }
 
-func NewPayrollHandler(service usecase.PayrollService, waClient whatsapp.WhatsAppClient, slipGen generator.SlipGenerator) *PayrollHandler {
+func NewPayrollHandler(service usecase.PayrollService, empRepo domain.EmployeeRepository, waClient whatsapp.WhatsAppClient, slipGen generator.SlipGenerator) *PayrollHandler {
 	return &PayrollHandler{
 		service:  service,
+		empRepo:  empRepo,
 		waClient: waClient,
 		slipGen:  slipGen,
 	}
@@ -193,4 +195,101 @@ func (h *PayrollHandler) SendSlipWA(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "slip berhasil dikirim via WhatsApp", nil)
+}
+
+func (h *PayrollHandler) GeneratePayroll(c echo.Context) error {
+	month, _ := strconv.Atoi(c.QueryParam("month"))
+	year, _ := strconv.Atoi(c.QueryParam("year"))
+	if month == 0 || year == 0 {
+		return response.Error(c, http.StatusBadRequest, "month and year required")
+	}
+
+	employees, err := h.empRepo.List(nil, true)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to list employees")
+	}
+
+	created := 0
+	for _, emp := range employees {
+		err := h.service.EnsurePayrollForEmployee(emp.ID, month, year)
+		if err == nil {
+			created++
+		}
+	}
+
+	return response.Success(c, http.StatusOK, "payroll generated", map[string]int{"count": created})
+}
+
+func (h *PayrollHandler) ListDetails(c echo.Context) error {
+	txID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid transaction id")
+	}
+
+	tx, err := h.service.GetTransaction(txID)
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "transaction not found")
+	}
+
+	return response.Success(c, http.StatusOK, "success", tx.Details)
+}
+
+func (h *PayrollHandler) UpdateStatus(c echo.Context) error {
+	txID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid transaction id")
+	}
+
+	var body struct {
+		Status string `json:"status"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid request body")
+	}
+
+	err = h.service.UpdateStatus(txID, domain.PayrollStatus(body.Status))
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to update status: "+err.Error())
+	}
+
+	return response.Success(c, http.StatusOK, "status updated", nil)
+}
+
+func (h *PayrollHandler) BulkSendWA(c echo.Context) error {
+	month, _ := strconv.Atoi(c.QueryParam("month"))
+	year, _ := strconv.Atoi(c.QueryParam("year"))
+
+	txs, err := h.service.ListTransactions(month, year)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to list transactions")
+	}
+
+	months := []string{"", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
+	now := time.Now()
+	issueDate := strconv.Itoa(now.Day()) + " " + months[now.Month()] + " " + strconv.Itoa(now.Year())
+
+	sent := 0
+	for _, t := range txs {
+		if t.Employee.PhoneWA == "" {
+			continue
+		}
+		imageBytes, err := h.slipGen.GenerateSlipImage(&t, issueDate)
+		if err != nil {
+			continue
+		}
+
+		caption := "Assalamu'alaikum Warahmatullahi Wabarakatuh\n\n" +
+			"Berikut adalah Slip Bisyaroh Anda:\n\n" +
+			"Nama: *" + t.Employee.Name + "*\n" +
+			"Jabatan: *" + t.Employee.Role + "*\n" +
+			"Periode: " + months[t.Month] + " " + strconv.Itoa(t.Year) + "\n\n" +
+			"Terima kasih atas dedikasi dan pengabdian Anda di Markaz Arabiyah. Semoga *Allah senantiasa melimpahkan keberkahan*.\n\n" +
+			"Ttd,\n*Karismaning Ulfa Awwalina, S.Pd*\nManager Keuangan Markaz Arabiyah"
+
+		if err := h.waClient.SendImage(t.Employee.PhoneWA, caption, imageBytes); err == nil {
+			sent++
+		}
+	}
+
+	return response.Success(c, http.StatusOK, "berhasil mengirim "+strconv.Itoa(sent)+" slip via WhatsApp", nil)
 }

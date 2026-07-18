@@ -20,6 +20,9 @@ type Config struct {
 	WA_API_URL string
 	WA_API_KEY string
 	WA_SESSION string
+	
+	SiakadAPIURL string
+	SiakadAPIKey string
 }
 
 func LoadConfig() *Config {
@@ -62,6 +65,8 @@ func LoadConfig() *Config {
 		WA_API_URL: os.Getenv("WA_API_URL"),
 		WA_API_KEY: os.Getenv("WA_API_KEY"),
 		WA_SESSION: os.Getenv("WA_SESSION_ID"),
+		SiakadAPIURL: os.Getenv("SIAKAD_API_URL"),
+		SiakadAPIKey: os.Getenv("SIAKAD_API_KEY"),
 	}
 }
 

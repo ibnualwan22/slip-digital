@@ -45,17 +45,23 @@ func main() {
 	// Initialize Handlers
 	empHandler := delivery.NewEmployeeHandler(empService)
 	actHandler := delivery.NewActivityHandler(actRepo)
-	payHandler := delivery.NewPayrollHandler(payService, waClient, slipGen)
+	payHandler := delivery.NewPayrollHandler(payService, empRepo, waClient, slipGen)
 	catHandler := delivery.NewCategoryHandler(catRepo)
+	siakadHandler := delivery.NewSiakadHandler(cfg, empRepo, actRepo, payService)
 
 	// Setup Routes
-	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler)
+	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler)
 
-	// Serve Frontend (static files)
-	e.Static("/assets", "web/assets")
-	e.File("/", "web/index.html")
-	// e.File("/*", "web/index.html") // Catch all for SPA if needed, but might conflict with unhandled API routes if not careful. For hash routing, we don't strictly need it, but good to have.
-	// Actually, with hash routing (#/dashboard), we only need / to serve index.html
+	// Serve static files (React build output)
+	e.Static("/img", "web/public/img")
+	e.Static("/assets", "web/dist/assets")
+	e.File("/", "web/dist/index.html")
+	e.File("/index.html", "web/dist/index.html")
+
+	// SPA Fallback Handle for react-router (so refresh works on /employees etc)
+	e.GET("/*", func(c echo.Context) error {
+		return c.File("web/dist/index.html")
+	})
 
 	// Start Server
 	log.Printf("Starting server on port %s", cfg.Port)

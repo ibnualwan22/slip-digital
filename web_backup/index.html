@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Rekap Markaz Arabiyah</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Boxicons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/assets/css/style.css">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="/assets/img/logo_markaz.png" alt="Logo Markaz" class="sidebar-logo"
+                    onerror="this.src='https://ui-avatars.com/api/?name=Markaz+Arabiyah&background=1E3A5F&color=fff&size=128'">
+                <h2 class="sidebar-title">E-Rekap<br><span>Markaz Arabiyah</span></h2>
+                <i class='bx bx-x toggle-btn-mobile' id="close-sidebar"></i>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-label">MENU UTAMA</li>
+                <li>
+                    <a href="#/dashboard" class="menu-item active" id="menu-dashboard">
+                        <i class='bx bx-grid-alt'></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/categories" class="menu-item" id="menu-categories">
+                        <i class='bx bx-category'></i>
+                        <span>Kategori Asatidz</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/employees" class="menu-item" id="menu-employees">
+                        <i class='bx bx-user-pin'></i>
+                        <span>Asatidz</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#/activities" class="menu-item" id="menu-activities">
+                        <i class='bx bx-list-ul'></i>
+                        <span>Aktivitas</span>
+                    </a>
+                </li>
+                <li class="menu-label">KEUANGAN</li>
+                <li>
+                    <a href="#/payroll" class="menu-item" id="menu-payroll">
+                        <i class='bx bx-money'></i>
+                        <span>Transaksi Payroll</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <i class='bx bx-menu toggle-btn' id="toggle-sidebar"></i>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <div class="user-info">
+                            <span class="user-name">Administrator</span>
+                            <span class="user-role">Super Admin</span>
+                        </div>
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=EFF6FF&color=1E40AF" alt="User"
+                            class="user-avatar">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic Content -->
+            <main class="content" id="app-content">
+                <!-- Pages will be rendered here -->
+                <div class="loading-state">
+                    <i class='bx bx-loader-alt bx-spin'></i>
+                    <p>Memuat halaman...</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/assets/js/api.js?v=4"></script>
+    <script src="/assets/js/formatter.js?v=5"></script>
+    <script src="/assets/js/dashboard.js?v=4"></script>
+    <script src="/assets/js/categories.js?v=4"></script>
+    <script src="/assets/js/employees.js?v=5"></script>
+    <script src="/assets/js/activities.js?v=4"></script>
+    <script src="/assets/js/payroll.js?v=5"></script>
+    <script src="/assets/js/payroll-detail.js?v=5"></script>
+    <script src="/assets/js/app.js?v=4"></script>
+</body>
+
+</html>
