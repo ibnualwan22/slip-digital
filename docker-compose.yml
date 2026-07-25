@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rekap-gaji-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: bisyaroh
+    volumes:
+      - rekap_gaji_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - rekap-gaji-net
+
+  app:
+    build: .
+    container_name: rekap-gaji-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PORT: "8080"
+      DB_HOST: db
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: bisyaroh
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET}
+      WA_API_URL: ${WA_API_URL}
+      WA_API_KEY: ${WA_API_KEY}
+      WA_SESSION_ID: ${WA_SESSION_ID}
+      SIAKAD_API_URL: ${SIAKAD_API_URL}
+      SIAKAD_API_KEY: ${SIAKAD_API_KEY}
+      API_GEMINI: ${API_GEMINI}
+      CLOUDE_NAME: ${CLOUDE_NAME}
+      API_KEY_CLOUDINARY: ${API_KEY_CLOUDINARY}
+      API_SECRET_CLOUDINARY: ${API_SECRET_CLOUDINARY}
+    ports:
+      - "3003:8080"
+    networks:
+      - rekap-gaji-net
+
+volumes:
+  rekap_gaji_data:
+
+networks:
+  rekap-gaji-net:
+    driver: bridge

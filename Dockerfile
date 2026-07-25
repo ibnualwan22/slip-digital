@@ -1,31 +1,34 @@
-# Phase 1: Build the Go application
-FROM golang:alpine AS builder
+# Stage 1: Build Frontend (Vite React)
+FROM node:22-alpine AS node-builder
+WORKDIR /app/web
+COPY web/package*.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
 
+# Stage 2: Build Go Backend
+FROM golang:alpine AS go-builder
 WORKDIR /app
-
-# Copy dependency files and download modules
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Copy the rest of the application files
 COPY . .
-
-# Build the executable
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
 
-# Phase 2: Create a lightweight image for runtime
+# Stage 3: Lightweight Runtime
 FROM alpine:latest
-
+RUN apk add --no-cache ca-certificates tzdata
+ENV TZ=Asia/Jakarta
 WORKDIR /root/
 
-# Copy the binary from builder
-COPY --from=builder /app/server .
+# Copy Go binary
+COPY --from=go-builder /app/server .
 
-# Copy static web assets (HTML, CSS, JS, Images, Slip Templates)
-COPY --from=builder /app/web ./web
+# Copy built frontend assets
+COPY --from=node-builder /app/web/dist ./web/dist
 
-# Expose port (Railway overrides this with its dynamic PORT env var)
+# Copy public static assets (images for slip generator etc.)
+COPY web/public ./web/public
+
 EXPOSE 8080
 
-# Run the app
 CMD ["./server"]

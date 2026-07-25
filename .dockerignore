@@ -1,5 +1,14 @@
 .git
 .env
+.env.*
 .idea/
 .vscode/
 /server
+/main
+*.exe
+*.test
+*.out
+web/node_modules
+web_backup
+bisyaroh.db
+README.md
