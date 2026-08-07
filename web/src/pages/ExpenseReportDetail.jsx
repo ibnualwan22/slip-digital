@@ -22,13 +22,14 @@ function fmtNum(num) {
   return parseFloat(num) || 0
 }
 
-const EMPTY_ITEM = {
+const getEmptyItem = () => ({
+  tanggal: new Date().toISOString().split('T')[0],
   nama_barang: '',
   harga_satuan: '',
   jumlah: 1,
   kredit: '',
   debit: '',
-}
+})
 
 // Compress image using Canvas before sending to AI — reduces payload 5-10x for speed
 async function compressImage(file, maxWidth = 1024, quality = 0.75) {
@@ -61,7 +62,7 @@ export default function ExpenseReportDetail() {
   const [editing, setEditing] = useState(null) // { idx, field }
 
   // New item group form (manual entry)
-  const [manualItems, setManualItems] = useState([ { ...EMPTY_ITEM } ])
+  const [manualItems, setManualItems] = useState([ getEmptyItem() ])
   const [manualKredit, setManualKredit] = useState('')
   const [manualBuktiFile, setManualBuktiFile] = useState(null)
   const [manualBuktiPreview, setManualBuktiPreview] = useState(null)
@@ -131,6 +132,7 @@ export default function ExpenseReportDetail() {
       for (let i = 0; i < validItems.length; i++) {
         const item = validItems[i]
         const payload = {
+          tanggal: item.tanggal,
           nama_barang: item.nama_barang,
           harga_satuan: parseFloat(item.harga_satuan) || 0,
           jumlah: parseInt(item.jumlah) || 1,
@@ -146,7 +148,7 @@ export default function ExpenseReportDetail() {
         })
       }
       
-      setManualItems([{...EMPTY_ITEM}])
+      setManualItems([getEmptyItem()])
       setManualKredit('')
       setManualBuktiFile(null)
       setManualBuktiPreview(null)
@@ -172,12 +174,14 @@ export default function ExpenseReportDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          tanggal: item.tanggal,
           nama_barang: item.nama_barang,
           harga_satuan: parseFloat(item.harga_satuan) || 0,
           jumlah: parseInt(item.jumlah) || 1,
           kredit: parseFloat(item.kredit) || 0,
           debit: parseFloat(item.debit) || 0,
           bukti_pembayaran: item.bukti_pembayaran || '',
+          group_id: item.group_id || '',
           is_konfirmasi: item.is_konfirmasi,
           is_tashih: item.is_tashih,
         }),
@@ -209,7 +213,18 @@ export default function ExpenseReportDetail() {
         return fetch(`${API_BASE}/expenses/items/${item.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            tanggal: payload.tanggal,
+            nama_barang: payload.nama_barang,
+            harga_satuan: parseFloat(payload.harga_satuan) || 0,
+            jumlah: parseInt(payload.jumlah) || 1,
+            kredit: parseFloat(payload.kredit) || 0,
+            debit: parseFloat(payload.debit) || 0,
+            bukti_pembayaran: payload.bukti_pembayaran || '',
+            group_id: payload.group_id || '',
+            is_konfirmasi: payload.is_konfirmasi,
+            is_tashih: payload.is_tashih,
+          }),
         })
       }))
       fetchReport()
@@ -331,6 +346,7 @@ export default function ExpenseReportDetail() {
       if (!data.success) throw new Error(data.message)
 
       const parsed = (data.data.items || []).map(it => ({
+        tanggal: it.tanggal || new Date().toISOString().split('T')[0],
         nama_barang: it.nama_barang || '',
         harga_satuan: it.harga_satuan || 0,
         jumlah: it.jumlah || 1,
@@ -346,7 +362,7 @@ export default function ExpenseReportDetail() {
       if (parsed.length === 0) {
         setScanning(false)
         setScanTimedOut(true)
-        setScannedItems([{ ...EMPTY_ITEM }])
+        setScannedItems([getEmptyItem()])
         return
       }
 
@@ -357,11 +373,11 @@ export default function ExpenseReportDetail() {
       if (err.name === 'AbortError') {
         // Timeout — tampilkan baris kosong untuk isi manual
         setScanTimedOut(true)
-        setScannedItems([{ ...EMPTY_ITEM }])
+        setScannedItems([getEmptyItem()])
       } else {
         Swal.fire('Scan Gagal', err.message || 'AI tidak bisa membaca nota.', 'warning')
         setScanTimedOut(true)
-        setScannedItems([{ ...EMPTY_ITEM }])
+        setScannedItems([getEmptyItem()])
       }
     }
     e.target.value = ''
@@ -505,12 +521,11 @@ export default function ExpenseReportDetail() {
           <button
             className={`btn ${allTashih ? 'btn-success' : 'btn-outline'}`}
             style={allTashih ? { background: 'var(--success)', color: 'white' } : {}}
-            disabled={!allTashih || saving || report.status === 'CONFIRMED'}
+            disabled={saving}
             onClick={handleTashihAll}
-            title={!allTashih ? 'Tashih semua item terlebih dahulu' : ''}
           >
             <CheckSquare size={16} />
-            {report.status === 'CONFIRMED' ? 'Sudah Di-Tashih' : 'Tashih Semua Transaksi'}
+            {report.status === 'CONFIRMED' ? 'Validasi Ulang Semua' : 'Validasi Semua Transaksi'}
           </button>
         </div>
       </div>
@@ -550,14 +565,17 @@ export default function ExpenseReportDetail() {
             <thead>
               <tr>
                 <th style={{ width: 40 }}>No</th>
+                <th style={{ width: 110 }}>Tanggal</th>
                 <th>Nama Barang</th>
                 <th style={{ width: 100 }}>Jumlah</th>
                 <th style={{ width: 130 }}>Total Harga</th>
                 <th style={{ width: 130 }}>Kredit</th>
                 <th style={{ width: 130 }}>Debit</th>
                 <th style={{ width: 90 }}>Bukti Nota</th>
-                <th style={{ width: 100 }}>Konfirmasi</th>
-                <th style={{ width: 80 }}>Tashih</th>
+                <th style={{ width: 90, textAlign: 'center' }}>
+                  Validasi
+                  {items.length > 0 && <input type="checkbox" checked={allTashih} readOnly style={{ marginLeft: 6, verticalAlign: 'middle', cursor: 'default' }} title={allTashih ? "Semua tervalidasi" : "Belum semua tervalidasi"} />}
+                </th>
                 <th style={{ width: 50 }}></th>
               </tr>
             </thead>
@@ -584,6 +602,25 @@ export default function ExpenseReportDetail() {
                           {currentNo}
                         </td>
                       )}
+
+                    {/* Tanggal */}
+                    <td style={{ verticalAlign: 'top' }}>
+                      {editing?.idx === idx && editing?.field === 'tanggal' ? (
+                        <input
+                          type="date"
+                          className="cell-input"
+                          value={item.tanggal || ''}
+                          onChange={e => handleCellChange(idx, 'tanggal', e.target.value)}
+                          onBlur={() => saveEdit(idx)}
+                          onKeyDown={e => e.key === 'Enter' && saveEdit(idx)}
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="cell-display" onClick={() => (report.status !== 'CONFIRMED') && startEdit(idx, 'tanggal')}>
+                          {item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID') : '—'}
+                        </div>
+                      )}
+                    </td>
 
                     {/* Nama Barang */}
                     <td>
@@ -718,28 +755,13 @@ export default function ExpenseReportDetail() {
                       </td>
                     )}
 
-                    {/* Konfirmasi */}
-                    {isFirstInGroup && (
-                      <td rowSpan={gSize} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                        <button
-                          className={`toggle-check ${item.is_konfirmasi ? 'toggled' : ''}`}
-                          onClick={() => handleToggleGroup(itemGroupId, 'is_konfirmasi', item.is_konfirmasi)}
-                          title={item.is_konfirmasi ? 'Batalkan Konfirmasi' : 'Konfirmasi'}
-                          disabled={report.status === 'CONFIRMED'}
-                        >
-                          {item.is_konfirmasi ? <Check size={16} /> : <Square size={16} />}
-                        </button>
-                      </td>
-                    )}
-
-                    {/* Tashih */}
+                    {/* Validasi */}
                     {isFirstInGroup && (
                       <td rowSpan={gSize} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                         <button
                           className={`toggle-check ${item.is_tashih ? 'toggled tashih' : ''}`}
                           onClick={() => handleToggleGroup(itemGroupId, 'is_tashih', item.is_tashih)}
-                          title={item.is_tashih ? 'Batalkan Tashih' : 'Tashih'}
-                          disabled={report.status === 'CONFIRMED'}
+                          title={item.is_tashih ? 'Batalkan Validasi' : 'Validasi'}
                         >
                           {item.is_tashih ? <Check size={16} /> : <Square size={16} />}
                         </button>
@@ -766,9 +788,17 @@ export default function ExpenseReportDetail() {
                 {manualItems.map((mItem, mIdx) => (
                   <tr key={`manual-${mIdx}`} className="add-item-row" style={{ background: 'var(--bg-card)' }}>
                     <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: 10 }}>
-                      <button className="btn-icon" style={{ background: 'var(--border-color)', margin: '0 auto' }} onClick={() => setManualItems(p => [...p, { ...EMPTY_ITEM }])}>
+                      <button className="btn-icon" style={{ background: 'var(--border-color)', margin: '0 auto' }} onClick={() => setManualItems(p => [...p, getEmptyItem()])}>
                         <Plus size={14} />
                       </button>
+                    </td>
+                    <td style={{ verticalAlign: 'top', paddingTop: 6 }}>
+                      <input
+                        type="date"
+                        className="cell-input"
+                        value={mItem.tanggal}
+                        onChange={e => handleManualItemChange(mIdx, 'tanggal', e.target.value)}
+                      />
                     </td>
                     <td style={{ verticalAlign: 'top', paddingTop: 6 }}>
                       <input
@@ -932,6 +962,7 @@ export default function ExpenseReportDetail() {
                       <table className="table scan-result-table">
                         <thead>
                           <tr>
+                            <th>Tanggal</th>
                             <th>Nama Barang</th>
                             <th>Harga Satuan</th>
                             <th>Jumlah</th>
@@ -942,6 +973,12 @@ export default function ExpenseReportDetail() {
                         <tbody>
                           {scannedItems.map((item, idx) => (
                             <tr key={idx}>
+                              <td>
+                                <input type="date" className="cell-input" value={item.tanggal || ''}
+                                  onChange={e => setScannedItems(prev => {
+                                    const n = [...prev]; n[idx] = { ...n[idx], tanggal: e.target.value }; return n
+                                  })} />
+                              </td>
                               <td>
                                 <input className="cell-input" value={item.nama_barang}
                                   onChange={e => setScannedItems(prev => {
@@ -979,7 +1016,7 @@ export default function ExpenseReportDetail() {
                             const valDebit = valKredit > 0 ? (valKredit - totScan) : 0
                             return (
                               <tr style={{ background: 'var(--bg-secondary)' }}>
-                                <td colSpan={3} style={{ textAlign: 'right', fontWeight: 600 }}>Total Semua Barang:</td>
+                                <td colSpan={4} style={{ textAlign: 'right', fontWeight: 600 }}>Total Semua Barang:</td>
                                 <td style={{ textAlign: 'right', paddingRight: 8, fontWeight: 700 }}>{formatRp(totScan)}</td>
                                 <td></td>
                               </tr>
@@ -1004,7 +1041,7 @@ export default function ExpenseReportDetail() {
                         </div>
                       </div>
                       <button className="btn btn-outline btn-sm" style={{ marginTop: 12 }}
-                        onClick={() => setScannedItems(prev => [...prev, { ...EMPTY_ITEM }])}>
+                        onClick={() => setScannedItems(prev => [...prev, getEmptyItem()])}>
                         <Plus size={14} /> Tambah Baris
                       </button>
                     </div>

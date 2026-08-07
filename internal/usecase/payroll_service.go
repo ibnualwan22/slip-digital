@@ -22,6 +22,7 @@ type PayrollService interface {
 	CalculateTransactionTHP(txID uuid.UUID) error
 	UpdateStatus(txID uuid.UUID, status domain.PayrollStatus) error
 	EnsurePayrollForEmployee(empID uuid.UUID, month, year int) error
+	SyncEmployeeData(month, year int) error
 	UpsertDetail(detail *domain.PayrollDetail) error
 	GetDetail(id uuid.UUID) (*domain.PayrollDetail, error)
 }
@@ -286,4 +287,103 @@ func (s *payrollService) EnsurePayrollForEmployee(empID uuid.UUID, month, year i
 		Year:       year,
 	}
 	return s.CreateTransaction(newTx)
+}
+
+func (s *payrollService) SyncEmployeeData(month, year int) error {
+	txs, err := s.repo.ListTransactions(month, year)
+	if err != nil {
+		return err
+	}
+
+	loc, errL := time.LoadLocation("Asia/Jakarta")
+	if errL != nil {
+		loc = time.Local
+	}
+	nowWIB := time.Now().In(loc).Format("02/01/2006 15:04:05")
+
+	for _, tx := range txs {
+		if tx.Status != domain.StatusDraft {
+			continue // only sync drafts
+		}
+
+		emp, err := s.empRepo.GetByID(tx.EmployeeID)
+		if err != nil {
+			continue // skip if employee not found
+		}
+
+		details, err := s.repo.GetDetailsByTransactionID(tx.ID)
+		if err != nil {
+			continue
+		}
+
+		// Calculate updated expected values
+		expectedFixedSalary := decimal.Zero
+		if emp.Category != nil && !emp.Category.FixedSalary.IsZero() {
+			expectedFixedSalary = emp.Category.FixedSalary
+		}
+
+		expectedAllowance := decimal.Zero
+		if emp.StructuralAllowance != nil && !emp.StructuralAllowance.IsZero() {
+			expectedAllowance = *emp.StructuralAllowance
+		} else if emp.Category != nil && !emp.Category.StructuralAllowance.IsZero() {
+			expectedAllowance = emp.Category.StructuralAllowance
+		}
+
+		// Flags to know if we've updated them
+		foundFixedSalary := false
+		foundAllowance := false
+
+		for _, detail := range details {
+			if detail.Description == "Gaji Pokok" {
+				foundFixedSalary = true
+				if expectedFixedSalary.IsZero() {
+					s.repo.DeleteDetail(detail.ID)
+				} else if !detail.Rate.Equal(expectedFixedSalary) {
+					detail.Rate = expectedFixedSalary
+					detail.TotalAmount = expectedFixedSalary // assuming Qty = 1
+					s.repo.UpdateDetail(&detail)
+				}
+			} else if detail.Description == "Tunjangan Struktural" {
+				foundAllowance = true
+				if expectedAllowance.IsZero() {
+					s.repo.DeleteDetail(detail.ID)
+				} else if !detail.Rate.Equal(expectedAllowance) {
+					detail.Rate = expectedAllowance
+					detail.TotalAmount = expectedAllowance // assuming Qty = 1
+					s.repo.UpdateDetail(&detail)
+				}
+			}
+		}
+
+		// If they don't exist but should, create them
+		if !foundFixedSalary && !expectedFixedSalary.IsZero() {
+			s.repo.CreateDetail(&domain.PayrollDetail{
+				ID:                   uuid.New(),
+				PayrollTransactionID: tx.ID,
+				Quantity:             decimal.NewFromInt(1),
+				Rate:                 expectedFixedSalary,
+				TotalAmount:          expectedFixedSalary,
+				Type:                 domain.TypeAddition,
+				Description:          "Gaji Pokok",
+				RecordedAt:           nowWIB,
+			})
+		}
+		if !foundAllowance && !expectedAllowance.IsZero() {
+			s.repo.CreateDetail(&domain.PayrollDetail{
+				ID:                   uuid.New(),
+				PayrollTransactionID: tx.ID,
+				Quantity:             decimal.NewFromInt(1),
+				Rate:                 expectedAllowance,
+				TotalAmount:          expectedAllowance,
+				Type:                 domain.TypeAddition,
+				Description:          "Tunjangan Struktural",
+				RecordedAt:           nowWIB,
+			})
+		}
+
+		// Re-calculate THP (which will also update JAM_AJAR internally)
+		s.CalculateTransactionTHP(tx.ID)
+	}
+
+	return nil
 }

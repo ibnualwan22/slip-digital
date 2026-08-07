@@ -107,6 +107,7 @@ func (h *ExpenseHandler) AddItem(c echo.Context) error {
 	}
 
 	var req struct {
+		Tanggal         string  `json:"tanggal"`
 		NamaBarang      string  `json:"nama_barang"`
 		HargaSatuan     float64 `json:"harga_satuan"`
 		Jumlah          int     `json:"jumlah"`
@@ -122,7 +123,12 @@ func (h *ExpenseHandler) AddItem(c echo.Context) error {
 		req.Jumlah = 1
 	}
 
+	if req.Tanggal == "" {
+		req.Tanggal = time.Now().Format("2006-01-02")
+	}
+
 	item, err := h.service.AddItem(reportID, usecase.AddItemRequest{
+		Tanggal:         req.Tanggal,
 		NamaBarang:      req.NamaBarang,
 		HargaSatuan:     decimal.NewFromFloat(req.HargaSatuan),
 		Jumlah:          req.Jumlah,
@@ -145,6 +151,7 @@ func (h *ExpenseHandler) UpdateItem(c echo.Context) error {
 	}
 
 	var req struct {
+		Tanggal         string  `json:"tanggal"`
 		NamaBarang      string  `json:"nama_barang"`
 		HargaSatuan     float64 `json:"harga_satuan"`
 		Jumlah          int     `json:"jumlah"`
@@ -162,7 +169,12 @@ func (h *ExpenseHandler) UpdateItem(c echo.Context) error {
 		req.Jumlah = 1
 	}
 
+	if req.Tanggal == "" {
+		req.Tanggal = time.Now().Format("2006-01-02")
+	}
+
 	item, err := h.service.UpdateItem(itemID, usecase.UpdateItemRequest{
+		Tanggal:         req.Tanggal,
 		NamaBarang:      req.NamaBarang,
 		HargaSatuan:     decimal.NewFromFloat(req.HargaSatuan),
 		Jumlah:          req.Jumlah,

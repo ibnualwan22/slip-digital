@@ -337,3 +337,17 @@ func (h *PayrollHandler) BulkSendWA(c echo.Context) error {
 
 	return response.Success(c, http.StatusOK, "berhasil mengirim "+strconv.Itoa(sent)+" slip via WhatsApp", nil)
 }
+
+func (h *PayrollHandler) SyncEmployees(c echo.Context) error {
+	month, _ := strconv.Atoi(c.QueryParam("month"))
+	year, _ := strconv.Atoi(c.QueryParam("year"))
+	if month == 0 || year == 0 {
+		return response.Error(c, http.StatusBadRequest, "month and year are required")
+	}
+
+	if err := h.service.SyncEmployeeData(month, year); err != nil {
+		return response.Error(c, http.StatusInternalServerError, "Gagal sinkronisasi data pegawai: "+err.Error())
+	}
+
+	return response.Success(c, http.StatusOK, "Data pegawai berhasil disinkronisasi", nil)
+}

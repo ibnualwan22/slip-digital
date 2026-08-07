@@ -26,7 +26,9 @@ func (r *expenseRepository) CreateReport(report *domain.ExpenseReport) error {
 
 func (r *expenseRepository) GetReportByID(id uuid.UUID) (*domain.ExpenseReport, error) {
 	var report domain.ExpenseReport
-	err := r.db.Preload("Items").First(&report, "id = ?", id).Error
+	err := r.db.Preload("Items", func(db *gorm.DB) *gorm.DB {
+		return db.Order("created_at ASC")
+	}).First(&report, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}

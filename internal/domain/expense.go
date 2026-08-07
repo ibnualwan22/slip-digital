@@ -27,6 +27,7 @@ type ExpenseReport struct {
 type ExpenseItem struct {
 	ID              uuid.UUID       `gorm:"type:uuid;primaryKey" json:"id"`
 	ExpenseReportID uuid.UUID       `gorm:"type:uuid;not null" json:"expense_report_id"`
+	Tanggal         string          `gorm:"type:varchar(20)" json:"tanggal"`
 	NamaBarang      string          `gorm:"type:varchar(255);not null" json:"nama_barang"`
 	HargaSatuan     decimal.Decimal `gorm:"type:numeric(19,4);default:0" json:"harga_satuan"`
 	Jumlah          int             `gorm:"not null;default:1" json:"jumlah"`

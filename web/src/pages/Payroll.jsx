@@ -93,6 +93,17 @@ export default function Payroll() {
     }
   }
 
+  const syncEmployees = async () => {
+    Swal.fire({ title: 'Menyinkronkan Pegawai...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+    try {
+      await api.post(`/payroll/sync-employees?month=${filterMonth}&year=${filterYear}`)
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Pegawai tersinkronisasi', showConfirmButton: false, timer: 1500 })
+      loadPayrolls()
+    } catch (e) {
+      Swal.fire('Error', e.response?.data?.message || 'Gagal sinkronisasi Pegawai', 'error')
+    }
+  }
+
   const confirmAll = async () => {
     const drafts = payrolls.filter(p => p.status === 'DRAFT')
     if (drafts.length === 0) {
@@ -163,6 +174,9 @@ export default function Payroll() {
           </button>
           <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={syncSiakad} disabled={loading}>
             <RefreshCw size={18} /> Tarik KBM Siakad
+          </button>
+          <button className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={syncEmployees} disabled={loading}>
+            <RefreshCw size={18} /> Sinkron Data Pegawai
           </button>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>

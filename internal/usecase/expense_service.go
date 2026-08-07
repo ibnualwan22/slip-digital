@@ -56,6 +56,7 @@ func (s *ExpenseService) DeleteReport(id uuid.UUID) error {
 // ----- Item CRUD -----
 
 type AddItemRequest struct {
+	Tanggal         string          `json:"tanggal"`
 	NamaBarang      string          `json:"nama_barang"`
 	HargaSatuan     decimal.Decimal `json:"harga_satuan"`
 	Jumlah          int             `json:"jumlah"`
@@ -71,6 +72,7 @@ func (s *ExpenseService) AddItem(reportID uuid.UUID, req AddItemRequest) (*domai
 	item := &domain.ExpenseItem{
 		ID:              uuid.New(),
 		ExpenseReportID: reportID,
+		Tanggal:         req.Tanggal,
 		NamaBarang:      req.NamaBarang,
 		HargaSatuan:     req.HargaSatuan,
 		Jumlah:          req.Jumlah,
@@ -90,6 +92,7 @@ func (s *ExpenseService) AddItem(reportID uuid.UUID, req AddItemRequest) (*domai
 }
 
 type UpdateItemRequest struct {
+	Tanggal         string          `json:"tanggal"`
 	NamaBarang      string          `json:"nama_barang"`
 	HargaSatuan     decimal.Decimal `json:"harga_satuan"`
 	Jumlah          int             `json:"jumlah"`
@@ -107,6 +110,7 @@ func (s *ExpenseService) UpdateItem(itemID uuid.UUID, req UpdateItemRequest) (*d
 		return nil, err
 	}
 
+	item.Tanggal = req.Tanggal
 	item.NamaBarang = req.NamaBarang
 	item.HargaSatuan = req.HargaSatuan
 	item.Jumlah = req.Jumlah
@@ -193,6 +197,7 @@ func (s *ExpenseService) recalculateTotals(reportID uuid.UUID) error {
 // ----- AI Scan Receipt (Gemini) -----
 
 type ScannedItem struct {
+	Tanggal     string  `json:"tanggal"`
 	NamaBarang  string  `json:"nama_barang"`
 	HargaSatuan float64 `json:"harga_satuan"`
 	Jumlah      int     `json:"jumlah"`
@@ -216,6 +221,7 @@ Penting: Format HANYA JSON murni yang sesuai struktur ini, jangan tambahkan penj
 {
   "items": [
     {
+      "tanggal": "2026-08-06",
       "nama_barang": "Nama barang (contoh: Baterai ABC / Kertas Folio)",
       "harga_satuan": 21000,
       "jumlah": 3,
@@ -229,7 +235,8 @@ Penting: Format HANYA JSON murni yang sesuai struktur ini, jangan tambahkan penj
 Catatan:
 1. Ekstrak semua barang yang ada secara berurutan.
 2. harga_satuan, total_harga, kredit, debit adalah Number/Angka (tanpa Rp, tanpa koma/titik pemisah ribuan).
-3. Jika total kredit/debit tidak spesifik per barang, taruh nominalnya di item pertama saja, yang lain isi 0.`
+3. Jika total kredit/debit tidak spesifik per barang, taruh nominalnya di item pertama saja, yang lain isi 0.
+4. tanggal dalam format YYYY-MM-DD. Jika tidak terdeteksi, taruh string kosong ""`
 
 	reqBody := map[string]interface{}{
 		"contents": []map[string]interface{}{
