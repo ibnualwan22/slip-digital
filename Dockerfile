@@ -13,6 +13,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -o shift ./cmd/maintenance/shift.go
 
 # Stage 3: Lightweight Runtime
 FROM alpine:latest
@@ -22,6 +23,7 @@ WORKDIR /root/
 
 # Copy Go binary
 COPY --from=go-builder /app/server .
+COPY --from=go-builder /app/shift .
 
 # Copy built frontend assets
 COPY --from=node-builder /app/web/dist ./web/dist
