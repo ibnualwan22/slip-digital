@@ -63,7 +63,7 @@ async function renderDashboard(container) {
                 <h3 class="card-title">Informasi Sistem</h3>
             </div>
             <div class="card-body">
-                <p>Selamat datang di sistem E-Rekap Markaz Arabiyah. Gunakan menu di sebelah kiri untuk mengelola data Asatidz, master aktivitas, dan transaksi payroll bulanan.</p>
+                <p>Selamat datang di sistem E-Maliyah Markaz Arabiyah. Gunakan menu di sebelah kiri untuk mengelola data Asatidz, master aktivitas, dan transaksi payroll bulanan.</p>
             </div>
         </div>
     `;

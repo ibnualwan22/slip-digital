@@ -6,15 +6,15 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <aside className={`sidebar ${isOpen ? 'active' : ''}`}>
       <div className="sidebar-header">
-        <img 
-          src="/img/logo_markaz.png" 
-          alt="Logo Markaz" 
+        <img
+          src="/img/logo_markaz.png"
+          alt="Logo Markaz"
           className="sidebar-logo"
           onError={(e) => {
             e.target.src = 'https://ui-avatars.com/api/?name=Markaz+Arabiyah&background=1E3A5F&color=fff&size=128'
           }}
         />
-        <h2 className="sidebar-title">E-Rekap<br/><span>Markaz Arabiyah</span></h2>
+        <h2 className="sidebar-title">E-Maliyah<br /><span>Markaz Arabiyah</span></h2>
         <X className="toggle-btn-mobile" size={24} onClick={onClose} />
       </div>
 
@@ -58,7 +58,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <span>Pengeluaran</span>
           </NavLink>
         </li>
-        
+
         <li className="menu-label">INTEGRASI</li>
         <li>
           <NavLink to="/siakad" onClick={onClose} className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>

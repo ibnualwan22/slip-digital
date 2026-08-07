@@ -44,16 +44,16 @@ export default function Siakad() {
       try {
         Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() })
         await api.put('/siakad/pengajar/terlambat', {
-            id: pengajarId,
-            // we proxy to siakad PUT, but normally siakad specific route takes the id and the specific absen to edit
-            // assuming the proxy handles the whole payload or we need a real ID of the absen detail
-            // user request says PUT /api/external/pengajar with {id, terlambatMenit}. For now just passing what we can
-            // wait, if we only pass {id, terlambatMenit}, how does it know which session?
-            // "PUT /api/external/pengajar - update terlambatMenit for specific attendance records."
-            // Ah, the ID must be the absen record ID!
-            // Let's assume pengajarId is the teacher's ID. Let's pass the specific id to the API.
-            id: pengajarId, // Assuming the backend knows or we need the absen detail ID
-            terlambatMenit: parseInt(newVal)
+          id: pengajarId,
+          // we proxy to siakad PUT, but normally siakad specific route takes the id and the specific absen to edit
+          // assuming the proxy handles the whole payload or we need a real ID of the absen detail
+          // user request says PUT /api/external/pengajar with {id, terlambatMenit}. For now just passing what we can
+          // wait, if we only pass {id, terlambatMenit}, how does it know which session?
+          // "PUT /api/external/pengajar - update terlambatMenit for specific attendance records."
+          // Ah, the ID must be the absen record ID!
+          // Let's assume pengajarId is the teacher's ID. Let's pass the specific id to the API.
+          id: pengajarId, // Assuming the backend knows or we need the absen detail ID
+          terlambatMenit: parseInt(newVal)
         })
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tersimpan', showConfirmButton: false, timer: 1500 })
         fetchSiakadData()
@@ -65,7 +65,7 @@ export default function Siakad() {
 
   const syncToPayroll = async (pengajar) => {
     if (!pengajar.localEmployeeId) {
-      Swal.fire('Peringatan', 'Pengajar ini belum terhubung dengan data Asatidz lokal E-Rekap.', 'info')
+      Swal.fire('Peringatan', 'Pengajar ini belum terhubung dengan data Asatidz lokal E-Maliyah.', 'info')
       return
     }
 
@@ -112,7 +112,7 @@ export default function Siakad() {
   const periode = data?.periode
   const pengajarList = data?.data || []
 
-  const filteredList = searchQuery.length >= 3 
+  const filteredList = searchQuery.length >= 3
     ? pengajarList.filter(p => p.nama.toLowerCase().includes(searchQuery.toLowerCase()))
     : pengajarList
 
@@ -127,7 +127,7 @@ export default function Siakad() {
             </h2>
             {periode && (
               <p style={{ opacity: 0.9 }}>
-                Periode Aktif: <b>{periode.dufah || 'Active'} — Usbu' {periode.usbu}</b> 
+                Periode Aktif: <b>{periode.dufah || 'Active'} — Usbu' {periode.usbu}</b>
                 ({formatDate(periode.dari)} - {formatDate(periode.sampai)})
               </p>
             )}
@@ -135,11 +135,11 @@ export default function Siakad() {
           <div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <div style={{ position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }}/>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="Cari asatidz (min 3 huruf)..." 
+                <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }} />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Cari asatidz (min 3 huruf)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ paddingLeft: '32px', width: '250px' }}
@@ -156,14 +156,14 @@ export default function Siakad() {
       {/* LIST PENGAJAR */}
       {filteredList.map(p => (
         <div className="card" key={p.id} style={{ overflow: 'visible' }}>
-          <div className="card-header" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center'}} onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
+          <div className="card-header" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
             <div style={{ flex: 1 }}>
               <h3 style={{ fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {p.nama}
                 {p.localEmployeeId ? (
-                   <span className="badge badge-success" style={{ display:'flex', alignItems:'center', gap:'4px' }}><Link2 size={12}/> Terhubung</span>
+                  <span className="badge badge-success" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Link2 size={12} /> Terhubung</span>
                 ) : (
-                   <span className="badge badge-warning" style={{ display:'flex', alignItems:'center', gap:'4px' }}><Link2 size={12}/> Belum Terhubung</span>
+                  <span className="badge badge-warning" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Link2 size={12} /> Belum Terhubung</span>
                 )}
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{p.noHp}</p>
@@ -183,9 +183,9 @@ export default function Siakad() {
             </div>
 
             <div>
-              <button 
-                className="btn btn-primary btn-sm" 
-                disabled={!p.localEmployeeId} 
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={!p.localEmployeeId}
                 onClick={(e) => { e.stopPropagation(); syncToPayroll(p); }}
               >
                 Sync ke Payroll
@@ -226,14 +226,14 @@ export default function Siakad() {
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{absen.materi || '-'}</div>
                           </td>
                           <td>
-                            <div><Clock size={12} style={{ display: 'inline', marginTop: '-2px' }}/> {absen.waktuMulai} - {absen.waktuSelesai || '?'}</div>
+                            <div><Clock size={12} style={{ display: 'inline', marginTop: '-2px' }} /> {absen.waktuMulai} - {absen.waktuSelesai || '?'}</div>
                             {absen.isBadal && <span className="badge badge-warning" style={{ marginTop: '4px' }}>Guru Pengganti (Badal)</span>}
                           </td>
                           <td>
-                            <div 
-                              style={{ 
-                                display: 'inline-block', 
-                                padding: '4px 8px', 
+                            <div
+                              style={{
+                                display: 'inline-block',
+                                padding: '4px 8px',
                                 background: absen.terlambatMenit > 0 ? '#FEE2E2' : '#F1F5F9',
                                 color: absen.terlambatMenit > 0 ? 'var(--danger)' : 'var(--text-muted)',
                                 borderRadius: '4px',

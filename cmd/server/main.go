@@ -52,8 +52,12 @@ func main() {
 	expService := usecase.NewExpenseService(expRepo, cfg.GeminiAPIKey)
 	expHandler := delivery.NewExpenseHandler(expService, cfg.CloudinaryCloudName, cfg.CloudinaryAPIKey, cfg.CloudinaryAPISecret)
 
+	dashRepo := postgres.NewDashboardRepository(cfg.DB)
+	dashService := usecase.NewDashboardService(dashRepo)
+	dashHandler := delivery.NewDashboardHandler(dashService)
+
 	// Setup Routes
-	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler)
+	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler, dashHandler)
 
 	// Serve static files (React build output)
 	e.Static("/img", "web/public/img")

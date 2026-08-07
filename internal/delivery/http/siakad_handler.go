@@ -81,7 +81,7 @@ func (h *SiakadHandler) GetPengajar(c echo.Context) error {
 		for _, item := range dataList {
 			pengajar := item.(map[string]interface{})
 			idStr := fmt.Sprintf("%v", pengajar["id"])
-			
+
 			// Total denda
 			terlambatMenit := 0
 			if absenDetailRaw, ok := pengajar["absenDetail"]; ok && absenDetailRaw != nil {
@@ -149,10 +149,10 @@ func (h *SiakadHandler) UpdateTerlambat(c echo.Context) error {
 
 // 3. Sync to Payroll
 type SyncRequest struct {
-	TotalJamMengajar   int `json:"total_jam_mengajar"`
+	TotalJamMengajar    int `json:"total_jam_mengajar"`
 	TotalTerlambatMenit int `json:"total_terlambat_menit"`
-	Bulan              int `json:"bulan"` // current month if not provided
-	Tahun              int `json:"tahun"` // current year if not provided
+	Bulan               int `json:"bulan"` // current month if not provided
+	Tahun               int `json:"tahun"` // current year if not provided
 }
 
 func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
@@ -193,7 +193,7 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 	}
 
 	if localEmp == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Pengajar ini belum tertaut ke profil Asatidz di E-Rekap")
+		return echo.NewHTTPError(http.StatusBadRequest, "Pengajar ini belum tertaut ke profil Asatidz di E-Maliyah")
 	}
 
 	// Pastikan payroll bulan ini sudah digenerate
@@ -261,13 +261,13 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 
 		if mengajarAct != nil {
 			err = h.payService.UpsertDetail(&domain.PayrollDetail{
-				ID: uuid.New(),
+				ID:                   uuid.New(),
 				PayrollTransactionID: tx.ID,
-				ActivityID: &mengajarAct.ID,
-				Quantity: decimal.NewFromFloat(float64(req.TotalJamMengajar)),
-				Rate: rate,
-				Type: domain.TypeAddition,
-				Description: "Jam Mengajar",
+				ActivityID:           &mengajarAct.ID,
+				Quantity:             decimal.NewFromFloat(float64(req.TotalJamMengajar)),
+				Rate:                 rate,
+				Type:                 domain.TypeAddition,
+				Description:          "Jam Mengajar",
 			})
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "Gagal sinkronisasi jam mengajar: "+err.Error())
@@ -285,7 +285,7 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 				break
 			}
 		}
-		
+
 		if dendaAct == nil {
 			newAct := domain.MasterActivity{
 				ID:           uuid.New(),
@@ -303,13 +303,13 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 		if dendaAct != nil {
 			dendaRate := decimal.NewFromInt(1000) // Rp 1000 per menit
 			err = h.payService.UpsertDetail(&domain.PayrollDetail{
-				ID: uuid.New(),
+				ID:                   uuid.New(),
 				PayrollTransactionID: tx.ID,
-				ActivityID: &dendaAct.ID,
-				Quantity: decimal.NewFromFloat(float64(req.TotalTerlambatMenit)),
-				Rate: dendaRate,
-				Type: domain.TypeDeduction,
-				Description: fmt.Sprintf("Terlambat %d mnt", req.TotalTerlambatMenit),
+				ActivityID:           &dendaAct.ID,
+				Quantity:             decimal.NewFromFloat(float64(req.TotalTerlambatMenit)),
+				Rate:                 dendaRate,
+				Type:                 domain.TypeDeduction,
+				Description:          fmt.Sprintf("Terlambat %d mnt", req.TotalTerlambatMenit),
 			})
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, "Gagal sinkronisasi denda: "+err.Error())
@@ -409,14 +409,14 @@ func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
 		h.actRepo.Create(&newAct)
 		dendaAct = &newAct
 	}
-	
+
 	sycnedCount := 0
 
 	if dataList, ok := result["data"].([]interface{}); ok {
 		for _, item := range dataList {
 			pengajar := item.(map[string]interface{})
 			idStr := fmt.Sprintf("%v", pengajar["id"])
-			
+
 			localEmp, found := siakadMap[idStr]
 			if !found {
 				continue
@@ -427,7 +427,7 @@ func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
 			if err != nil {
 				continue
 			}
-			
+
 			txs, _ := h.payService.ListTransactions(bulan, tahun)
 			var tx *domain.PayrollTransaction
 			for _, t := range txs {
@@ -471,13 +471,13 @@ func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
 				}
 
 				h.payService.UpsertDetail(&domain.PayrollDetail{
-					ID: uuid.New(),
+					ID:                   uuid.New(),
 					PayrollTransactionID: tx.ID,
-					ActivityID: &mengajarAct.ID,
-					Quantity: decimal.NewFromFloat(float64(totalJam)),
-					Rate: rate,
-					Type: domain.TypeAddition,
-					Description: "Jam Mengajar",
+					ActivityID:           &mengajarAct.ID,
+					Quantity:             decimal.NewFromFloat(float64(totalJam)),
+					Rate:                 rate,
+					Type:                 domain.TypeAddition,
+					Description:          "Jam Mengajar",
 				})
 			}
 
@@ -485,13 +485,13 @@ func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
 			if totalTerlambat > 0 {
 				dendaRate := decimal.NewFromInt(1000)
 				h.payService.UpsertDetail(&domain.PayrollDetail{
-					ID: uuid.New(),
+					ID:                   uuid.New(),
 					PayrollTransactionID: tx.ID,
-					ActivityID: &dendaAct.ID,
-					Quantity: decimal.NewFromFloat(float64(totalTerlambat)),
-					Rate: dendaRate,
-					Type: domain.TypeDeduction,
-					Description: fmt.Sprintf("Terlambat %d mnt", totalTerlambat),
+					ActivityID:           &dendaAct.ID,
+					Quantity:             decimal.NewFromFloat(float64(totalTerlambat)),
+					Rate:                 dendaRate,
+					Type:                 domain.TypeDeduction,
+					Description:          fmt.Sprintf("Terlambat %d mnt", totalTerlambat),
 				})
 			}
 

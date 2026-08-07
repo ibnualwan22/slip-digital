@@ -14,6 +14,7 @@ func SetupRouter(
 	categoryHandler *CategoryHandler,
 	siakadHandler *SiakadHandler,
 	expenseHandler *ExpenseHandler,
+	dashboardHandler *DashboardHandler,
 ) {
 	// Health check / Root endpoint
 	e.GET("/", func(c echo.Context) error {
@@ -26,6 +27,12 @@ func SetupRouter(
 	auth := api.Group("")
 	// We comment out the JWT middleware for development/testing convenience.
 	// auth.Use(JWTMiddleware(jwtSecret))
+
+	// Dashboard
+	if dashboardHandler != nil {
+		dashboard := auth.Group("/dashboard")
+		dashboard.GET("/stats", dashboardHandler.GetStats)
+	}
 
 	// Employees
 	employees := auth.Group("/employees")
