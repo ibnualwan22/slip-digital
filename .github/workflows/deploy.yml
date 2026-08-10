@@ -1,0 +1,36 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master # Sesuaikan jika branch utamamu bernama master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            # Arahkan ke folder project di VPS (Sesuaikan path-nya!)
+            cd ~/slip-digital
+            
+            # Tarik update terbaru
+            git checkout .
+            git pull origin main
+            
+            # Build dan jalankan ulang aplikasinya
+            docker-compose up -d --build app
+            
+            # Jika memakai docker compose v2 plugin (yang tanpa strip), sesuaikan command di atas menjadi:
+            # docker compose up -d --build app

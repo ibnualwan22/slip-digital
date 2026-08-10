@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Trash2, Camera, CheckSquare, Square,
-  Loader, Upload, Eye, X, Check, AlertCircle, Save
+  Loader, Upload, Eye, X, Check, AlertCircle, Save, Download
 } from 'lucide-react'
 import Swal from 'sweetalert2'
+import { exportToExcel, exportToPDF } from '../utils/exportUtils'
 
 const API_BASE = '/api/v1'
 
@@ -57,6 +58,7 @@ export default function ExpenseReportDetail() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // Editing row state
   const [editing, setEditing] = useState(null) // { idx, field }
@@ -512,6 +514,31 @@ export default function ExpenseReportDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn btn-outline"
+            onClick={() => exportToExcel(report, items)}
+            disabled={exporting || loading || !items.length}
+          >
+            <Download size={16} /> Excel
+          </button>
+          <button
+            className="btn btn-outline"
+            style={{ minWidth: 80 }}
+            onClick={async () => {
+              setExporting(true)
+              try {
+                await exportToPDF(report, items)
+              } catch (e) {
+                console.error(e)
+                Swal.fire('Error', 'Gagal Export PDF: ' + (e.message || ''), 'error')
+              } finally {
+                setExporting(false)
+              }
+            }}
+            disabled={exporting || loading || !items.length}
+          >
+            {exporting ? <Loader size={16} className="spinner" /> : <Download size={16} />} PDF
+          </button>
           <button
             className="btn btn-outline"
             onClick={() => { setScanModal(true); setScanPreview(null); setScannedItems([]) }}
