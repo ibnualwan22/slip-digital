@@ -349,5 +349,5 @@ func (h *PayrollHandler) SyncEmployees(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "Gagal sinkronisasi data pegawai: "+err.Error())
 	}
 
-	return response.Success(c, http.StatusOK, "Data pegawai berhasil disinkronisasi", nil)
+	return response.Success(c, http.StatusOK, "Data pegawai berhasil disinkronisasi :)", nil)
 }
