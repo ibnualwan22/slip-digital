@@ -456,7 +456,7 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	valX := totalBoxLeft + (600-int(valWidth))/2
 	drawText(canvas, valX, y+48, valStr, s.fontBold, black)
 
-	y += 180 // Spacer for signature
+	y += 130 // Spacer for signature (dikurangi agar muat note footer)
 
 	// ========== 6. STEMPEL + SIGNATURE ==========
 	sigX := leftMargin + 60
@@ -483,6 +483,19 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	sigY += 185 // accommodate the larger stamp size
 	drawText(canvas, sigX, sigY, "Karismaning Ulfa Awwalina, S.Pd", s.fontBold, black)
 	drawText(canvas, sigX, sigY+22, "Manager Keuangan Markaz Arabiyah", s.fontSmall, black)
+
+	// ========== 6b. NOTE FOOTER ==========
+	noteY := sigY + 60
+	drawHLine(canvas, leftMargin, tableRight, noteY, lineColor)
+	noteY += 40
+	noteLabel := "Note : "
+	noteLabelW := int((&font.Drawer{Face: s.fontSmBold}).MeasureString(noteLabel) / 64)
+	drawText(canvas, leftMargin, noteY, noteLabel, s.fontSmBold, black)
+	drawText(canvas, leftMargin+noteLabelW, noteY, "Batas konfirmasi presensi atau kegiatan asatidz", s.fontSmall, black)
+	noteY += 34
+	drawText(canvas, leftMargin, noteY, "maksimal pukul 22.00 malam terhitung dari terbitnya slip,", s.fontSmall, black)
+	noteY += 34
+	drawText(canvas, leftMargin, noteY, "selebihnya dari itu tidak masuk dalam hitungan bisyaroh!", s.fontSmall, black)
 
 	// ========== 7. ENCODE ==========
 	var buf bytes.Buffer
