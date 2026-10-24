@@ -77,6 +77,12 @@ export default function Sidebar({ isOpen, onClose }) {
 
         <li className="menu-label">AKUN</li>
         <li>
+          <a href="https://bawwabah.markazarabiyah.site" className="menu-item">
+            <Link2 size={20} />
+            <span>Bawwabah</span>
+          </a>
+        </li>
+        <li>
           <button
             type="button"
             className="menu-item"

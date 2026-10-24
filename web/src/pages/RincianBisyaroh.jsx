@@ -131,7 +131,10 @@ export default function RincianBisyaroh() {
           <div style={{ fontWeight: 800, fontSize: 17 }}>E-Maliyah — Rincian Bisyaroh</div>
           <div style={{ fontSize: 12, opacity: .8 }}>{getName()}</div>
         </div>
-        <button onClick={logout} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 600 }}>Keluar</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <a href="https://bawwabah.markazarabiyah.site" style={{ background: '#fff', color: '#1E3A5F', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>Bawwabah</a>
+          <button onClick={logout} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 600 }}>Keluar</button>
+        </div>
       </header>
 
       <main style={{ maxWidth: 900, margin: '0 auto', padding: 20 }}>
