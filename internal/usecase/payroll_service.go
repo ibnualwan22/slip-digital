@@ -114,6 +114,11 @@ func (s *payrollService) DeleteTransaction(id uuid.UUID) error {
 }
 
 func (s *payrollService) AddDetail(detail *domain.PayrollDetail) error {
+	// Baris dari jalur mana pun yang tidak menyebut sumber dianggap input
+	// manual (form bendahara). Mesin KBM mengisi Source="siakad" sendiri.
+	if detail.Source == "" {
+		detail.Source = "manual"
+	}
 	// calculate total amount directly if not provided
 	if detail.TotalAmount.IsZero() && !detail.Quantity.IsZero() && !detail.Rate.IsZero() {
 		detail.TotalAmount = detail.Quantity.Mul(detail.Rate)
@@ -133,6 +138,9 @@ func (s *payrollService) AddDetail(detail *domain.PayrollDetail) error {
 }
 
 func (s *payrollService) UpsertDetail(detail *domain.PayrollDetail) error {
+	if detail.Source == "" {
+		detail.Source = "manual"
+	}
 	details, err := s.repo.GetDetailsByTransactionID(detail.PayrollTransactionID)
 	if err == nil {
 		for _, d := range details {

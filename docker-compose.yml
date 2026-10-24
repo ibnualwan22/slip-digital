@@ -10,12 +10,12 @@ services:
     volumes:
       - rekap_gaji_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks:
       - rekap-gaji-net
 
   app:
-    build: .
+    image: ghcr.io/ibnualwan22/slip-digital:latest
     container_name: rekap-gaji-app
     restart: unless-stopped
     depends_on:
@@ -29,17 +29,21 @@ services:
       DB_PORT: "5432"
       DB_SSLMODE: disable
       JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
       WA_API_URL: ${WA_API_URL}
       WA_API_KEY: ${WA_API_KEY}
       WA_SESSION_ID: ${WA_SESSION_ID}
       SIAKAD_API_URL: ${SIAKAD_API_URL}
       SIAKAD_API_KEY: ${SIAKAD_API_KEY}
+      EMALIYAH_WEBHOOK_SECRET: ${EMALIYAH_WEBHOOK_SECRET}
+      EMALIYAH_SSO_SECRET: ${EMALIYAH_SSO_SECRET}
       API_GEMINI: ${API_GEMINI}
       CLOUDE_NAME: ${CLOUDE_NAME}
       API_KEY_CLOUDINARY: ${API_KEY_CLOUDINARY}
       API_SECRET_CLOUDINARY: ${API_SECRET_CLOUDINARY}
     ports:
-      - "3003:8080"
+      - "3007:8080"
     networks:
       - rekap-gaji-net
 

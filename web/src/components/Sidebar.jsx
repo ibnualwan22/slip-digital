@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Layers, Users, List, Receipt, Link2, X, ShoppingCart } from 'lucide-react'
+import { LayoutGrid, Layers, Users, List, Receipt, Link2, X, ShoppingCart, LogOut, Calendar } from 'lucide-react'
 
 export default function Sidebar({ isOpen, onClose }) {
   return (
@@ -65,6 +65,27 @@ export default function Sidebar({ isOpen, onClose }) {
             <Link2 size={20} />
             <span>Data SIAKAD</span>
           </NavLink>
+        </li>
+
+        <li className="menu-label">PENGATURAN</li>
+        <li>
+          <NavLink to="/periods" onClick={onClose} className={({ isActive }) => `menu-item ${isActive ? 'active' : ''}`}>
+            <Calendar size={20} />
+            <span>Pemetaan Periode</span>
+          </NavLink>
+        </li>
+
+        <li className="menu-label">AKUN</li>
+        <li>
+          <button
+            type="button"
+            className="menu-item"
+            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            onClick={() => { localStorage.removeItem('emaliyah_token'); localStorage.removeItem('emaliyah_role'); localStorage.removeItem('emaliyah_name'); window.location.href = '/login' }}
+          >
+            <LogOut size={20} />
+            <span>Keluar</span>
+          </button>
         </li>
       </ul>
     </aside>

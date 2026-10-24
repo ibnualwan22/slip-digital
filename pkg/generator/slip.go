@@ -176,8 +176,22 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 	var dendaItems []slipItem
 
 	pengajaranCodes := map[string]bool{
-		"GAJI_POKOK": true, "TUNJANGAN": true, "JAM_AJAR": true, "WALI_KELAS": true,
+		"GAJI_POKOK": true, "TUNJANGAN": true, "JAM_AJAR": true, "JAM_MENGAJAR": true, "WALI_KELAS": true,
 	}
+
+	// Satu kolom Jam Mengajar / Denda Terlambat: baris-baris keluarga
+	// yang sama dijumlahkan jadi satu baris slip, apa pun sumbernya
+	// (Siakad maupun manual). Tarif hanya tampil bila semua baris sama.
+	jamCodes := map[string]bool{"JAM_MENGAJAR": true, "JAM_AJAR": true, "MENGAJAR": true}
+	dendaCodes := map[string]bool{"TERLAMBAT": true, "DENDA": true}
+	jamQty, jamTotal := decimal.Zero, decimal.Zero
+	jamRate := decimal.Zero
+	jamRateSame := true
+	jamIdx := -1
+	dendaQty, dendaTotal := decimal.Zero, decimal.Zero
+	dendaRate := decimal.Zero
+	dendaRateSame := true
+	dendaIdx := -1
 
 	for _, det := range details {
 		code := ""
@@ -193,6 +207,18 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		}
 
 		if det.Type == "DEDUCTION" {
+			if dendaCodes[code] {
+				if dendaIdx == -1 {
+					dendaItems = append(dendaItems, slipItem{Name: "Denda Terlambat"})
+					dendaIdx = len(dendaItems) - 1
+					dendaRate = det.Rate
+				} else if !det.Rate.Equal(dendaRate) {
+					dendaRateSame = false
+				}
+				dendaQty = dendaQty.Add(det.Quantity)
+				dendaTotal = dendaTotal.Add(det.TotalAmount)
+				continue
+			}
 			qtyStr := ""
 			if !det.Quantity.IsZero() {
 				qtyStr = det.Quantity.StringFixed(0)
@@ -204,6 +230,18 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 				Total:    formatRp(det.TotalAmount),
 			})
 		} else {
+			if jamCodes[code] {
+				if jamIdx == -1 {
+					pengajaranItems = append(pengajaranItems, slipItem{Name: "Jam Mengajar"})
+					jamIdx = len(pengajaranItems) - 1
+					jamRate = det.Rate
+				} else if !det.Rate.Equal(jamRate) {
+					jamRateSame = false
+				}
+				jamQty = jamQty.Add(det.Quantity)
+				jamTotal = jamTotal.Add(det.TotalAmount)
+				continue
+			}
 			nameLower := strings.ToLower(name)
 			isPengajaran := pengajaranCodes[code] || strings.Contains(nameLower, "gaji") || strings.Contains(nameLower, "tunjangan") || strings.Contains(nameLower, "mengajar") || strings.Contains(nameLower, "wali kelas")
 
@@ -233,6 +271,25 @@ func (s *slipGenerator) GenerateSlipImage(tx *domain.PayrollTransaction, issueDa
 		}
 	}
 
+	// Isi baris gabungan keluarga jam dan denda.
+	if jamIdx >= 0 {
+		intensif := ""
+		if jamRateSame {
+			intensif = formatRp(jamRate)
+		}
+		pengajaranItems[jamIdx].Qty = jamQty.StringFixed(0)
+		pengajaranItems[jamIdx].Total = formatRp(jamTotal)
+		pengajaranItems[jamIdx].Intensif = intensif
+	}
+	if dendaIdx >= 0 {
+		intensif := ""
+		if dendaRateSame {
+			intensif = formatRp(dendaRate)
+		}
+		dendaItems[dendaIdx].Qty = dendaQty.StringFixed(0)
+		dendaItems[dendaIdx].Total = formatRp(dendaTotal)
+		dendaItems[dendaIdx].Intensif = intensif
+	}
 	// ========== 3. EMPLOYEE INFO ==========
 	// Push everything down by an additional 80px (~2cm)
 	y := 410

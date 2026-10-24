@@ -34,3 +34,11 @@ Thumbs.db
 /server
 /main
 rekap-gaji-digital
+
+# E-Maliyah local backups & artifacts (never commit)
+.bak-*/
+*.bak-*
+bisyaroh.db
+bisyaroh_backup.dump
+build-deploy.log
+web/dist

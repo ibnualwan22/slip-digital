@@ -9,6 +9,14 @@ import { exportToExcel, exportToPDF } from '../utils/exportUtils'
 
 const API_BASE = '/api/v1'
 
+// fetch terbungkus token login (semua panggilan halaman ini menuju API sendiri)
+const authFetch = (url, options = {}) => {
+  const token = localStorage.getItem('emaliyah_token')
+  const headers = { ...(options.headers || {}) }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return fetch(url, { ...options, headers })
+}
+
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -89,7 +97,7 @@ export default function ExpenseReportDetail() {
   const fetchReport = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/expenses/${id}`)
+      const res = await authFetch(`${API_BASE}/expenses/${id}`)
       const data = await res.json()
       if (!data.success) throw new Error(data.message)
       setReport(data.data)
@@ -123,7 +131,7 @@ export default function ExpenseReportDetail() {
       if (manualBuktiFile) {
         const formData = new FormData()
         formData.append('file', manualBuktiFile)
-        const upRes = await fetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
+        const upRes = await authFetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
         const upData = await upRes.json()
         if (upData.success && upData.data?.url) {
           uploadedUrl = upData.data.url
@@ -143,7 +151,7 @@ export default function ExpenseReportDetail() {
           group_id: groupId,
           bukti_pembayaran: uploadedUrl
         }
-        await fetch(`${API_BASE}/expenses/${id}/items`, {
+        await authFetch(`${API_BASE}/expenses/${id}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -172,7 +180,7 @@ export default function ExpenseReportDetail() {
 
   const handleUpdateItem = async (item) => {
     try {
-      const res = await fetch(`${API_BASE}/expenses/items/${item.id}`, {
+      const res = await authFetch(`${API_BASE}/expenses/items/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -212,7 +220,7 @@ export default function ExpenseReportDetail() {
     try {
       await Promise.all(groupItems.map(item => {
         const payload = { ...item, [field]: newVal }
-        return fetch(`${API_BASE}/expenses/items/${item.id}`, {
+        return authFetch(`${API_BASE}/expenses/items/${item.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -260,7 +268,7 @@ export default function ExpenseReportDetail() {
     })
     if (!result.isConfirmed) return
     try {
-      const res = await fetch(`${API_BASE}/expenses/items/${itemId}`, { method: 'DELETE' })
+      const res = await authFetch(`${API_BASE}/expenses/items/${itemId}`, { method: 'DELETE' })
       const data = await res.json()
       if (!data.success) throw new Error(data.message)
       fetchReport()
@@ -296,7 +304,7 @@ export default function ExpenseReportDetail() {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const res = await fetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
+      const res = await authFetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
       const data = await res.json()
       if (!data.success) throw new Error(data.message)
       // Update item with URL
@@ -334,7 +342,7 @@ export default function ExpenseReportDetail() {
       const timeout = setTimeout(() => controller.abort(), 30000)
       let res
       try {
-        res = await fetch(`${API_BASE}/expenses/scan-receipt`, {
+        res = await authFetch(`${API_BASE}/expenses/scan-receipt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image_base64: base64, mime_type: 'image/jpeg' }),
@@ -393,7 +401,7 @@ export default function ExpenseReportDetail() {
       if (scanFileRaw) {
         const formData = new FormData()
         formData.append('file', scanFileRaw)
-        const upRes = await fetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
+        const upRes = await authFetch(`${API_BASE}/expenses/upload`, { method: 'POST', body: formData })
         const upData = await upRes.json()
         if (upData.success && upData.data?.url) {
           uploadedUrl = upData.data.url
@@ -421,7 +429,7 @@ export default function ExpenseReportDetail() {
           payload.debit = 0
         }
 
-        await fetch(`${API_BASE}/expenses/${id}/items`, {
+        await authFetch(`${API_BASE}/expenses/${id}/items`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -459,7 +467,7 @@ export default function ExpenseReportDetail() {
     if (!result.isConfirmed) return
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE}/expenses/${id}/tashih-all`, { method: 'POST' })
+      const res = await authFetch(`${API_BASE}/expenses/${id}/tashih-all`, { method: 'POST' })
       const data = await res.json()
       if (!data.success) throw new Error(data.message)
       Swal.fire('Berhasil!', 'Semua transaksi telah di-tashih', 'success')

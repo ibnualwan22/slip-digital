@@ -26,6 +26,9 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 			tokenString := parts[1]
 
 			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, echo.NewHTTPError(http.StatusUnauthorized, "invalid signing method")
+				}
 				return []byte(secret), nil
 			})
 
@@ -33,7 +36,40 @@ func JWTMiddleware(secret string) echo.MiddlewareFunc {
 				return response.Error(c, http.StatusUnauthorized, "invalid or expired token")
 			}
 
-			// Token is valid, proceed
+			// Token valid: paparkan klaim identitas ke context untuk
+			// middleware peran dan handler di hilir.
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				if v, ok := claims["role"].(string); ok {
+					c.Set("authRole", v)
+				}
+				if v, ok := claims["employee_id"].(string); ok {
+					c.Set("authEmployeeID", v)
+				}
+				if v, ok := claims["siakad_id"].(string); ok {
+					c.Set("authSiakadID", v)
+				}
+				if v, ok := claims["name"].(string); ok {
+					c.Set("authName", v)
+				}
+				if v, ok := claims["sub"].(string); ok {
+					c.Set("authUsername", v)
+				}
+			}
+
+			return next(c)
+		}
+	}
+}
+
+// RequireRole menolak token yang perannya tidak sesuai.
+// Inilah pagar server antara akun admin dan akun pengajar:
+// token pengajar TIDAK PERNAH bisa melewati grup admin, dan sebaliknya.
+func RequireRole(role string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if c.Get("authRole") != role {
+				return response.Error(c, http.StatusForbidden, "akses ditolak untuk peran ini")
+			}
 			return next(c)
 		}
 	}

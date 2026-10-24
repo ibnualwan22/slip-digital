@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -22,14 +23,21 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"https://e-maliyah.markazarabiyah.site"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
 
 	// Initialize Repositories
 	empRepo := postgres.NewEmployeeRepository(cfg.DB)
+	periodRepo := postgres.NewPeriodRepository(cfg.DB)
+	kbmLogRepo := postgres.NewKBMSyncLogRepository(cfg.DB)
 	actRepo := postgres.NewActivityRepository(cfg.DB)
 	payRepo := postgres.NewPayrollRepository(cfg.DB)
 	catRepo := postgres.NewCategoryRepository(cfg.DB)
 	expRepo := postgres.NewExpenseRepository(cfg.DB)
+	ssoRepo := postgres.NewSSORepository(cfg.DB)
 
 	// Note: We need to initialize payrollService first to inject it into employeeService but 
 	// payrollService also needs empRepo.
@@ -52,12 +60,22 @@ func main() {
 	expService := usecase.NewExpenseService(expRepo, cfg.GeminiAPIKey)
 	expHandler := delivery.NewExpenseHandler(expService, cfg.CloudinaryCloudName, cfg.CloudinaryAPIKey, cfg.CloudinaryAPISecret)
 
+	kbmService := usecase.NewKBMService(cfg, empRepo, periodRepo, payRepo, actRepo, kbmLogRepo, payService)
+	kbmHandler := delivery.NewKBMHandler(kbmService, periodRepo, kbmLogRepo, cfg)
+	kbmHandler.StartReconciliation()
+
+	periodHandler := delivery.NewPeriodHandler(periodRepo)
+	meHandler := delivery.NewMeHandler(periodRepo, payRepo, cfg)
+	ssoHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.SSOSecret)
+
 	dashRepo := postgres.NewDashboardRepository(cfg.DB)
 	dashService := usecase.NewDashboardService(dashRepo)
 	dashHandler := delivery.NewDashboardHandler(dashService)
 
 	// Setup Routes
-	delivery.SetupRouter(e, cfg.JWTSecret, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler, dashHandler)
+	authHandler := delivery.NewAuthHandler(cfg, empRepo)
+	siakadHandler.SetKBMService(kbmService)
+	delivery.SetupRouter(e, cfg.JWTSecret, authHandler, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler, dashHandler, periodHandler, meHandler, kbmHandler, ssoHandler)
 
 	// Serve static files (React build output)
 	e.Static("/img", "web/public/img")

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,13 @@ type SiakadHandler struct {
 	empRepo    domain.EmployeeRepository
 	actRepo    domain.ActivityRepository
 	payService usecase.PayrollService
+	kbm        usecase.KBMService
+}
+
+// SetKBMService memasang mesin hitung ulang KBM berbasis pemetaan.
+// Bila terpasang, jalur sinkronisasi lama dialihkan ke mesin ini.
+func (h *SiakadHandler) SetKBMService(kbm usecase.KBMService) {
+	h.kbm = kbm
 }
 
 func NewSiakadHandler(cfg *config.Config, empRepo domain.EmployeeRepository, actRepo domain.ActivityRepository, payService usecase.PayrollService) *SiakadHandler {
@@ -112,6 +120,33 @@ func (h *SiakadHandler) GetPengajar(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
+// 1b. Proxy GET Daftar Dufah (untuk dropdown pemetaan periode)
+func (h *SiakadHandler) GetDufah(c echo.Context) error {
+	url := strings.TrimSuffix(h.cfg.SiakadAPIURL, "/pengajar") + "/dufah"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	req.Header.Set("x-api-key", h.cfg.SiakadAPIKey)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadGateway, "Failed to connect to SIAKAD API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return echo.NewHTTPError(resp.StatusCode, "SIAKAD API returned status: "+fmt.Sprint(resp.StatusCode))
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to parse SIAKAD response")
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
 // 2. Proxy PUT Terlambat
 func (h *SiakadHandler) UpdateTerlambat(c echo.Context) error {
 	var body map[string]interface{}
@@ -156,6 +191,30 @@ type SyncRequest struct {
 }
 
 func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
+	// Jalur baru: hitung ulang berbasis pemetaan periode (angka dari
+	// jendela dufah bulan terkait, bukan dari total kiriman klien).
+	if h.kbm != nil {
+		siakadId := c.Param("siakadId")
+		var req SyncRequest
+		_ = c.Bind(&req)
+		now := time.Now()
+		bulan := req.Bulan
+		if bulan == 0 {
+			bulan = int(now.Month())
+		}
+		tahun := req.Tahun
+		if tahun == 0 {
+			tahun = now.Year()
+		}
+		if err := h.kbm.RecomputeTeacher(siakadId, bulan, tahun, "manual"); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Data berhasil disinkronisasi ke payroll (berbasis pemetaan periode)",
+		})
+	}
+
 	siakadId := c.Param("siakadId")
 	if siakadId == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Siakad ID required")
@@ -327,6 +386,33 @@ func (h *SiakadHandler) SyncToPayroll(c echo.Context) error {
 
 // 4. Bulk Sync
 func (h *SiakadHandler) SyncAllToPayroll(c echo.Context) error {
+	// Jalur baru: hitung ulang massal berbasis pemetaan periode.
+	if h.kbm != nil {
+		var req struct {
+			Bulan int `json:"bulan"`
+			Tahun int `json:"tahun"`
+		}
+		_ = c.Bind(&req)
+		now := time.Now()
+		bulan := req.Bulan
+		if bulan == 0 {
+			bulan = int(now.Month())
+		}
+		tahun := req.Tahun
+		if tahun == 0 {
+			tahun = now.Year()
+		}
+		result, err := h.kbm.RecomputeMonth(bulan, tahun, "manual")
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": "Data KBM dihitung ulang dari jendela dufah pada pemetaan periode",
+			"data":    result,
+		})
+	}
+
 	var req struct {
 		Bulan int `json:"bulan"`
 		Tahun int `json:"tahun"`

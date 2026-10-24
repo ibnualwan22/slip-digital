@@ -34,6 +34,11 @@ type PayrollDetail struct {
 	TotalAmount          decimal.Decimal `gorm:"type:numeric(19,4);default:0" json:"total_amount"`
 	Type                 ActivityType    `gorm:"type:varchar(20);not null" json:"type"`
 	Description          string          `gorm:"type:text" json:"description"`
+	// Source membedakan asal baris: "siakad" (ditulis mesin hitung ulang,
+	// hanya baris ini yang boleh ditimpa) vs "manual" (input bendahara,
+	// tidak pernah disentuh mesin). Kolom ini yang memungkinkan satu
+	// aktivitas "Jam Mengajar" dipakai bersama tanpa saling menghapus.
+	Source               string          `gorm:"type:varchar(20)" json:"source"`
 	RecordedAt           string          `gorm:"type:varchar(50)" json:"recorded_at"`
 	CreatedAt            time.Time       `json:"created_at"`
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Eye, Share2, Printer, CheckCircle, Search, RefreshCw } from 'lucide-react'
+import { Plus, Eye, Share2, Printer, CheckCircle, Search, RefreshCw, BookOpen, AlertTriangle } from 'lucide-react'
 import api from '../api'
 import { formatRupiah, getMonthName, getStatusConfig } from '../utils/formatter'
 import Swal from 'sweetalert2'
@@ -11,10 +11,19 @@ export default function Payroll() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1)
+  const [kbmInfo, setKbmInfo] = useState(null)
   const [filterYear, setFilterYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     loadPayrolls()
+  }, [filterMonth, filterYear])
+
+  useEffect(() => {
+    let alive = true
+    api.get(`/payroll/kbm-info?bulan=${filterMonth}&tahun=${filterYear}`)
+      .then(res => { if (alive) setKbmInfo(res.data || null) })
+      .catch(() => { if (alive) setKbmInfo(null) })
+    return () => { alive = false }
   }, [filterMonth, filterYear])
 
   const loadPayrolls = async () => {
@@ -85,8 +94,9 @@ export default function Payroll() {
   const syncSiakad = async () => {
     Swal.fire({ title: 'Menyinkronkan Siakad...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
     try {
-      await api.post('/siakad/sync-all', { bulan: parseInt(filterMonth), tahun: parseInt(filterYear) })
-      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Siakad tersinkronisasi', showConfirmButton: false, timer: 1500 })
+      const res = await api.post('/payroll/recompute', { bulan: parseInt(filterMonth), tahun: parseInt(filterYear) })
+      const d = res.data
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: d ? `KBM ${d.dufah_name} dihitung ulang — ${d.teachers_updated} pengajar diperbarui` : 'Data Siakad tersinkronisasi', showConfirmButton: false, timer: 2500 })
       loadPayrolls()
     } catch (e) {
       Swal.fire('Error', e.response?.data?.message || 'Gagal sinkronisasi Siakad', 'error')
@@ -187,6 +197,22 @@ export default function Payroll() {
             <Share2 size={18} /> Blast WA
           </button>
         </div>
+      </div>
+      <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-color, #e5e7eb)', background: 'var(--bg-muted, #f8fafc)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {kbmInfo?.period ? (
+          <>
+            <BookOpen size={15} />
+            <span>KBM bulan ini dari <strong>{kbmInfo.period.dufah_name}</strong> ({kbmInfo.period.start_date} s.d. {kbmInfo.period.end_date})</span>
+            {kbmInfo.last_sync && (
+              <span style={{ color: 'var(--text-muted)' }}>• terakhir diperbarui {kbmInfo.last_sync.at} ({kbmInfo.last_sync.trigger === 'webhook' ? 'otomatis dari Siakad' : kbmInfo.last_sync.trigger === 'rekonsiliasi' ? 'rekonsiliasi malam' : kbmInfo.last_sync.trigger})</span>
+            )}
+          </>
+        ) : (
+          <>
+            <AlertTriangle size={15} color="#d97706" />
+            <span>Bulan ini <strong>belum terhubung ke dufah</strong> — atur di menu Pemetaan Periode agar data KBM otomatis mengikuti absensi Siakad.</span>
+          </>
+        )}
       </div>
       <div className="card-body p-0">
         <div className="table-responsive">

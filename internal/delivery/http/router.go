@@ -8,6 +8,7 @@ import (
 func SetupRouter(
 	e *echo.Echo,
 	jwtSecret string,
+	authHandler *AuthHandler,
 	employeeHandler *EmployeeHandler,
 	activityHandler *ActivityHandler,
 	payrollHandler *PayrollHandler,
@@ -15,6 +16,10 @@ func SetupRouter(
 	siakadHandler *SiakadHandler,
 	expenseHandler *ExpenseHandler,
 	dashboardHandler *DashboardHandler,
+	periodHandler *PeriodHandler,
+	meHandler *MeHandler,
+	kbmHandler *KBMHandler,
+	ssoHandler *SSOHandler,
 ) {
 	// Health check / Root endpoint
 	e.GET("/", func(c echo.Context) error {
@@ -24,9 +29,42 @@ func SetupRouter(
 	api := e.Group("/api/v1")
 
 	// Protected routes
+	// Login bersifat publik; semua rute lain di bawah grup auth wajib JWT.
+	api.POST("/auth/login", authHandler.Login)
+
+	// Webhook dari Siakad (publik, dijaga secret bersama di handler).
+	if kbmHandler != nil {
+		api.POST("/webhooks/siakad", kbmHandler.Webhook)
+	}
+
+	// Callback SSO dari Siakad (publik; token sekali pakai diverifikasi di handler).
+	if ssoHandler != nil {
+		api.GET("/sso/siakad", ssoHandler.Callback)
+	}
+
 	auth := api.Group("")
-	// We comment out the JWT middleware for development/testing convenience.
-	// auth.Use(JWTMiddleware(jwtSecret))
+	auth.Use(JWTMiddleware(jwtSecret))
+	auth.Use(RequireRole("admin"))
+
+	// Pemetaan Periode Dufah (khusus admin; grup auth sudah berpagar peran admin)
+	if periodHandler != nil {
+		periods := auth.Group("/periods")
+		periods.GET("", periodHandler.List)
+		periods.POST("", periodHandler.Create)
+		periods.PUT("/:id", periodHandler.Update)
+		periods.DELETE("/:id", periodHandler.Delete)
+	}
+
+	// Rekap Saya (khusus pengajar) — grup terpisah, pagar peran pengajar.
+	// Identitas selalu dari token; tidak ada parameter identitas dari klien.
+	if meHandler != nil {
+		me := api.Group("/me")
+		me.Use(JWTMiddleware(jwtSecret))
+		me.Use(RequireRole("pengajar"))
+		me.GET("/profile", meHandler.Profile)
+		me.GET("/periods", meHandler.Periods)
+		me.GET("/recap", meHandler.Recap)
+	}
 
 	// Dashboard
 	if dashboardHandler != nil {
@@ -51,6 +89,10 @@ func SetupRouter(
 
 	// Payroll
 	payroll := auth.Group("/payroll")
+	if kbmHandler != nil {
+		payroll.POST("/recompute", kbmHandler.Recompute)
+		payroll.GET("/kbm-info", kbmHandler.Info)
+	}
 	payroll.GET("", payrollHandler.ListTransactions)
 	payroll.POST("", payrollHandler.CreateTransaction)
 	payroll.POST("/generate", payrollHandler.GeneratePayroll)
@@ -69,7 +111,7 @@ func SetupRouter(
 	payroll.POST("/:id/send-wa", payrollHandler.SendSlipWA)
 
 	// Category Routes
-	categories := api.Group("/categories")
+	categories := auth.Group("/categories")
 	categories.GET("", categoryHandler.List)
 	categories.POST("", categoryHandler.Create)
 	categories.GET("/:id", categoryHandler.Get)
@@ -78,8 +120,9 @@ func SetupRouter(
 
 	// Siakad Routes
 	if siakadHandler != nil {
-		siakad := api.Group("/siakad")
+		siakad := auth.Group("/siakad")
 		siakad.GET("/pengajar", siakadHandler.GetPengajar)
+		siakad.GET("/dufah", siakadHandler.GetDufah)
 		siakad.PUT("/pengajar/terlambat", siakadHandler.UpdateTerlambat)
 		siakad.POST("/sync-all", siakadHandler.SyncAllToPayroll)
 		siakad.POST("/pengajar/:siakadId/sync", siakadHandler.SyncToPayroll)

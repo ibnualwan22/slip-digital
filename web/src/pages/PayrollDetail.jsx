@@ -194,6 +194,77 @@ export default function PayrollDetail() {
 
   const additions = details.filter(d => d.type === 'ADDITION')
   const deductions = details.filter(d => d.type === 'DEDUCTION')
+  const [expandedGroups, setExpandedGroups] = useState({})
+  const toggleGroup = (key) => setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }))
+  // Satu baris Jam Mengajar / Denda Terlambat: baris-baris keluarga yang
+  // sama digabung (qty dan total dijumlah). Rincian sumber (Siakad /
+  // Manual) tetap bisa dibuka, dan tombol edit/hapus ada di tiap sub-baris.
+  const JAM_CODES = ['JAM_MENGAJAR', 'JAM_AJAR', 'MENGAJAR']
+  const DENDA_CODES = ['TERLAMBAT', 'DENDA']
+  const groupRows = (rows, codes, label) => {
+    const fam = rows.filter(d => codes.includes(d.activity?.code))
+    if (fam.length <= 1) return rows.map(d => ({ kind: 'single', row: d }))
+    const qty = fam.reduce((s, d) => s + Number(d.quantity), 0)
+    const total = fam.reduce((s, d) => s + Number(d.total_amount), 0)
+    const rates = [...new Set(fam.map(d => String(d.rate)))]
+    const group = { kind: 'group', key: label, label, qty, total, rate: rates.length === 1 ? fam[0].rate : null, rows: fam }
+    const out = []
+    let inserted = false
+    for (const d of rows) {
+      if (codes.includes(d.activity?.code)) { if (!inserted) { out.push(group); inserted = true } }
+      else out.push({ kind: 'single', row: d })
+    }
+    return out
+  }
+  const groupedAdditions = groupRows(additions, JAM_CODES, 'Jam Mengajar')
+  const groupedDeductions = groupRows(deductions, DENDA_CODES, 'Denda Terlambat')
+  const renderActionButtons = (d, type) => {
+    if (tx?.status !== 'DRAFT') return null
+    if (type === 'ADDITION' && (d.description === 'Gaji Pokok' || d.description === 'Tunjangan Struktural')) return null
+    return (<>
+      <button className="btn-icon edit" style={{ marginRight: '8px', color: '#3b82f6', background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => showDetailForm(type, d)}><Pencil size={16} /></button>
+      <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
+    </>)
+  }
+  const renderDetailRow = (d, type) => (
+    <tr key={d.id}>
+      <td>
+        <strong>{d.activity?.activity_name}</strong>
+        {d.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.description}</div>}
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {formatRupiah(d.rate)}</div>
+      </td>
+      <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
+      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
+      <td>{renderActionButtons(d, type)}</td>
+    </tr>
+  )
+  const renderGroup = (item, type, groupKey) => {
+    const expanded = !!expandedGroups[groupKey]
+    return [
+      <tr key={groupKey} style={{ background: '#F8FAFC', cursor: 'pointer' }} onClick={() => toggleGroup(groupKey)}>
+        <td>
+          <strong>{expanded ? '▾' : '▸'} {item.label}</strong>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{item.rows.length} baris (Siakad + Manual) — klik untuk rincian</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {item.rate !== null ? formatRupiah(item.rate) : 'bervariasi'}</div>
+        </td>
+        <td style={{ textAlign: 'right' }}>{item.qty}x</td>
+        <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(item.total)}</td>
+        <td></td>
+      </tr>,
+      ...(expanded ? item.rows.map(d => (
+        <tr key={d.id} style={{ background: '#fff' }}>
+          <td style={{ paddingLeft: '28px' }}>
+            <strong>{d.source === 'siakad' ? 'Siakad (otomatis)' : 'Manual (bendahara)'}</strong>
+            {d.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.description}</div>}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {formatRupiah(d.rate)}</div>
+          </td>
+          <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
+          <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
+          <td>{renderActionButtons(d, type)}</td>
+        </tr>
+      )) : []),
+    ]
+  }
 
   return (
     <div>
@@ -273,25 +344,7 @@ export default function PayrollDetail() {
                 {additions.length === 0 ? (
                   <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>Tidak ada data penambahan</td></tr>
                 ) : (
-                  additions.map(d => (
-                    <tr key={d.id}>
-                      <td>
-                        <strong>{d.activity?.activity_name}</strong>
-                        {d.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.description}</div>}
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {formatRupiah(d.rate)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
-                      <td>
-                         {tx?.status === 'DRAFT' && d.description !== 'Gaji Pokok' && d.description !== 'Tunjangan Struktural' && (
-                           <>
-                             <button className="btn-icon edit" style={{ marginRight: '8px', color: '#3b82f6', background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => showDetailForm('ADDITION', d)}><Pencil size={16} /></button>
-                             <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
-                           </>
-                         )}
-                      </td>
-                    </tr>
-                  ))
+                  groupedAdditions.map(item => item.kind === 'single' ? renderDetailRow(item.row, 'ADDITION') : renderGroup(item, 'ADDITION', 'add-' + item.key))
                 )}
                 <tr style={{ background: '#F8FAFC' }}>
                   <td colSpan="2" style={{ fontWeight: 600, textAlign: 'right' }}>Total Pemasukan:</td>
@@ -322,25 +375,7 @@ export default function PayrollDetail() {
                 {deductions.length === 0 ? (
                   <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>Tidak ada data potongan</td></tr>
                 ) : (
-                  deductions.map(d => (
-                    <tr key={d.id}>
-                      <td>
-                        <strong>{d.activity?.activity_name}</strong>
-                        {d.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{d.description}</div>}
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>@ {formatRupiah(d.rate)}</div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{d.quantity}x</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatRupiah(d.total_amount)}</td>
-                      <td>
-                         {tx?.status === 'DRAFT' && (
-                           <>
-                             <button className="btn-icon edit" style={{ marginRight: '8px', color: '#3b82f6', background: 'transparent', border: 'none', cursor: 'pointer' }} onClick={() => showDetailForm('DEDUCTION', d)}><Pencil size={16} /></button>
-                             <button className="btn-icon delete" onClick={() => deleteDetail(d.id)}><Trash2 size={16} /></button>
-                           </>
-                         )}
-                      </td>
-                    </tr>
-                  ))
+                  groupedDeductions.map(item => item.kind === 'single' ? renderDetailRow(item.row, 'DEDUCTION') : renderGroup(item, 'DEDUCTION', 'ded-' + item.key))
                 )}
                 <tr style={{ background: '#F8FAFC' }}>
                   <td colSpan="2" style={{ fontWeight: 600, textAlign: 'right' }}>Total Potongan:</td>

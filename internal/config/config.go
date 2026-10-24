@@ -16,6 +16,9 @@ import (
 type Config struct {
 	Port       string
 	JWTSecret  string
+	SSOSecret  string
+	AdminUsername     string
+	AdminPasswordHash string
 	DB         *gorm.DB
 	WA_API_URL string
 	WA_API_KEY string
@@ -23,6 +26,7 @@ type Config struct {
 
 	SiakadAPIURL string
 	SiakadAPIKey string
+	WebhookSecret string
 
 	// Gemini AI
 	GeminiAPIKey string
@@ -45,6 +49,7 @@ func LoadConfig() *Config {
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
+	ssoSecret := os.Getenv("EMALIYAH_SSO_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "defaultsecret"
 	}
@@ -69,12 +74,16 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:       port,
 		JWTSecret:  jwtSecret,
+		SSOSecret:  ssoSecret,
+		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
+		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
 		DB:         db,
 		WA_API_URL: os.Getenv("WA_API_URL"),
 		WA_API_KEY: os.Getenv("WA_API_KEY"),
 		WA_SESSION: os.Getenv("WA_SESSION_ID"),
 		SiakadAPIURL: os.Getenv("SIAKAD_API_URL"),
 		SiakadAPIKey: os.Getenv("SIAKAD_API_KEY"),
+		WebhookSecret: os.Getenv("EMALIYAH_WEBHOOK_SECRET"),
 		GeminiAPIKey:        os.Getenv("API_GEMINI"),
 		CloudinaryCloudName: os.Getenv("CLOUDE_NAME"),
 		CloudinaryAPIKey:    os.Getenv("API_KEY_CLOUDINARY"),
@@ -91,6 +100,9 @@ func migrateAndSeed(db *gorm.DB) {
 		&domain.PayrollDetail{},
 		&domain.ExpenseReport{},
 		&domain.ExpenseItem{},
+		&domain.PeriodMapping{},
+		&domain.KBMSyncLog{},
+		&domain.SSOConsumedToken{},
 	)
 	if err != nil {
 		log.Printf("Failed to auto migrate database schema: %v\n", err)
