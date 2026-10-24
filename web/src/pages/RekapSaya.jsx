@@ -115,7 +115,7 @@ export default function RekapSaya() {
           <div style={{ fontSize: 12, opacity: .8 }}>{getName()}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <a href="https://bawwabah.markazarabiyah.site" style={{ background: '#fff', color: '#1E3A5F', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>Bawwabah</a>
+          <a href="https://bawwabah.markazarabiyah.site/dashboard" style={{ background: '#fff', color: '#1E3A5F', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 700, textDecoration: 'none', textAlign: 'center' }}>Bawwabah</a>
           <button onClick={logout} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 600 }}>Keluar</button>
         </div>
       </header>
