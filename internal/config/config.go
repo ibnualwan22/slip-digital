@@ -17,6 +17,7 @@ type Config struct {
 	Port       string
 	JWTSecret  string
 	SSOSecret  string
+	BawwabahSSOSecret string
 	AdminUsername     string
 	AdminPasswordHash string
 	DB         *gorm.DB
@@ -50,6 +51,7 @@ func LoadConfig() *Config {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	ssoSecret := os.Getenv("EMALIYAH_SSO_SECRET")
+	bawwabahSSOSecret := os.Getenv("BAWWABAH_EMALIYAH_SSO_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "defaultsecret"
 	}
@@ -75,6 +77,7 @@ func LoadConfig() *Config {
 		Port:       port,
 		JWTSecret:  jwtSecret,
 		SSOSecret:  ssoSecret,
+		BawwabahSSOSecret: bawwabahSSOSecret,
 		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
 		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
 		DB:         db,

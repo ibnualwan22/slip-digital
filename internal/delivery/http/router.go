@@ -20,6 +20,7 @@ func SetupRouter(
 	meHandler *MeHandler,
 	kbmHandler *KBMHandler,
 	ssoHandler *SSOHandler,
+	ssoBawwabahHandler *SSOHandler,
 ) {
 	// Health check / Root endpoint
 	e.GET("/", func(c echo.Context) error {
@@ -40,6 +41,11 @@ func SetupRouter(
 	// Callback SSO dari Siakad (publik; token sekali pakai diverifikasi di handler).
 	if ssoHandler != nil {
 		api.GET("/sso/siakad", ssoHandler.Callback)
+	}
+
+	// Callback SSO dari Bawwabah (publik; token sekali pakai diverifikasi di handler).
+	if ssoBawwabahHandler != nil {
+		api.GET("/sso/bawwabah", ssoBawwabahHandler.Callback)
 	}
 
 	auth := api.Group("")

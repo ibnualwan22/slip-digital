@@ -66,7 +66,8 @@ func main() {
 
 	periodHandler := delivery.NewPeriodHandler(periodRepo)
 	meHandler := delivery.NewMeHandler(periodRepo, payRepo, cfg)
-	ssoHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.SSOSecret)
+	ssoHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.SSOSecret, false, "Siakad")
+	ssoBawwabahHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.BawwabahSSOSecret, true, "Bawwabah")
 
 	dashRepo := postgres.NewDashboardRepository(cfg.DB)
 	dashService := usecase.NewDashboardService(dashRepo)
@@ -75,7 +76,7 @@ func main() {
 	// Setup Routes
 	authHandler := delivery.NewAuthHandler(cfg, empRepo)
 	siakadHandler.SetKBMService(kbmService)
-	delivery.SetupRouter(e, cfg.JWTSecret, authHandler, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler, dashHandler, periodHandler, meHandler, kbmHandler, ssoHandler)
+	delivery.SetupRouter(e, cfg.JWTSecret, authHandler, empHandler, actHandler, payHandler, catHandler, siakadHandler, expHandler, dashHandler, periodHandler, meHandler, kbmHandler, ssoHandler, ssoBawwabahHandler)
 
 	// Serve static files (React build output)
 	e.Static("/img", "web/public/img")
