@@ -202,6 +202,25 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		return response.Error(c, http.StatusForbidden, "Akun Siakad Anda belum terhubung ke data karyawan E-Maliyah. Silakan hubungi admin.")
 	}
 
+	// Karyawan bertanda admin (mis. bendahara) mendapat token admin,
+	// bukan pengajar — ia mengelola payroll, bukan hanya melihat miliknya.
+	if emp.IsAdmin {
+		h.clearFailures(ip)
+		token, err := h.issueToken(jwt.MapClaims{
+			"sub":         req.Username,
+			"role":        "admin",
+			"name":        identity.Nama,
+			"employee_id": emp.ID.String(),
+			"siakad_id":   identity.ID,
+		})
+		if err != nil {
+			return response.Error(c, http.StatusInternalServerError, "Gagal membuat token")
+		}
+		return response.Success(c, http.StatusOK, "Login berhasil", map[string]interface{}{
+			"token": token, "username": req.Username, "role": "admin", "name": identity.Nama,
+		})
+	}
+
 	h.clearFailures(ip)
 	token, err := h.issueToken(jwt.MapClaims{
 		"sub":         req.Username,

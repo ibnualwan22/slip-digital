@@ -18,6 +18,10 @@ type Employee struct {
 	HourlyRate          *decimal.Decimal  `gorm:"type:numeric(19,4)" json:"hourly_rate"`
 	PhoneWA             string            `gorm:"type:varchar(20)" json:"phone_wa"`
 	IsActive            bool              `gorm:"default:true" json:"is_active"`
+	// IsAdmin menandai karyawan yang juga super admin E-Maliyah
+	// (mis. bendahara): login/SSO-nya menerbitkan token role "admin",
+	// bukan "pengajar". Kolom dibuat otomatis oleh GORM AutoMigrate.
+	IsAdmin             bool              `gorm:"default:false" json:"is_admin"`
 	SiakadID            *string           `gorm:"type:varchar(50);index" json:"siakad_id"`
 	CreatedAt           time.Time         `json:"created_at"`
 	UpdatedAt           time.Time         `json:"updated_at"`

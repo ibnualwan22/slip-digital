@@ -128,6 +128,17 @@ func (h *SSOHandler) Callback(c echo.Context) error {
 	if emp == nil {
 		return fail("Akun Siakad Anda belum terhubung ke data karyawan E-Maliyah.")
 	}
+	// Karyawan bertanda admin mendapat sesi admin, bukan pengajar —
+	// berlaku untuk SSO Siakad maupun SSO Bawwabah non-superadmin.
+	if emp.IsAdmin {
+		return h.successPage(c, "admin", emp.Name, "Mengalihkan ke Dashboard…", "/dashboard", jwt.MapClaims{
+			"sub":         p.SiakadID,
+			"role":        "admin",
+			"name":        emp.Name,
+			"employee_id": emp.ID.String(),
+			"siakad_id":   p.SiakadID,
+		})
+	}
 	return h.successPage(c, "pengajar", emp.Name, "Mengalihkan ke Rincian Bisyaroh…", "/rincian-bisyaroh", jwt.MapClaims{
 		"sub":         p.SiakadID,
 		"role":        "pengajar",
