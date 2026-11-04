@@ -13,6 +13,12 @@ export default function PayrollDetail() {
   const [details, setDetails] = useState([])
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
+  // useState HARUS di atas, sebelum early return loading di bawah: React
+  // mewajibkan urutan hook sama di setiap render. Sebelumnya baris ini ada
+  // di bawah early return sehingga halaman detail selalu crash setelah
+  // data selesai dimuat ("Rendered more hooks than during the previous
+  // render").
+  const [expandedGroups, setExpandedGroups] = useState({})
 
   useEffect(() => {
     loadData()
@@ -194,7 +200,6 @@ export default function PayrollDetail() {
 
   const additions = details.filter(d => d.type === 'ADDITION')
   const deductions = details.filter(d => d.type === 'DEDUCTION')
-  const [expandedGroups, setExpandedGroups] = useState({})
   const toggleGroup = (key) => setExpandedGroups(prev => ({ ...prev, [key]: !prev[key] }))
   // Satu baris Jam Mengajar / Denda Terlambat: baris-baris keluarga yang
   // sama digabung (qty dan total dijumlah). Rincian sumber (Siakad /
