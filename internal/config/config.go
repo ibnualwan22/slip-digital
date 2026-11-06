@@ -14,20 +14,23 @@ import (
 )
 
 type Config struct {
-	Port       string
-	JWTSecret  string
-	SSOSecret  string
+	Port              string
+	JWTSecret         string
+	SSOSecret         string
 	BawwabahSSOSecret string
 	AdminUsername     string
 	AdminPasswordHash string
-	DB         *gorm.DB
-	WA_API_URL string
-	WA_API_KEY string
-	WA_SESSION string
+	DB                *gorm.DB
+	WA_API_URL        string
+	WA_API_KEY        string
+	WA_SESSION        string
 
-	SiakadAPIURL string
-	SiakadAPIKey string
+	SiakadAPIURL  string
+	SiakadAPIKey  string
 	WebhookSecret string
+
+	// Kunci API Bawwabah (Fase 7): pengumuman periode baru ke E-Maliyah.
+	BawwabahAPIKey string
 
 	// Gemini AI
 	GeminiAPIKey string
@@ -74,19 +77,20 @@ func LoadConfig() *Config {
 	migrateAndSeed(db)
 
 	return &Config{
-		Port:       port,
-		JWTSecret:  jwtSecret,
-		SSOSecret:  ssoSecret,
-		BawwabahSSOSecret: bawwabahSSOSecret,
-		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
-		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
-		DB:         db,
-		WA_API_URL: os.Getenv("WA_API_URL"),
-		WA_API_KEY: os.Getenv("WA_API_KEY"),
-		WA_SESSION: os.Getenv("WA_SESSION_ID"),
-		SiakadAPIURL: os.Getenv("SIAKAD_API_URL"),
-		SiakadAPIKey: os.Getenv("SIAKAD_API_KEY"),
-		WebhookSecret: os.Getenv("EMALIYAH_WEBHOOK_SECRET"),
+		Port:                port,
+		JWTSecret:           jwtSecret,
+		SSOSecret:           ssoSecret,
+		BawwabahSSOSecret:   bawwabahSSOSecret,
+		AdminUsername:       os.Getenv("ADMIN_USERNAME"),
+		AdminPasswordHash:   os.Getenv("ADMIN_PASSWORD_HASH"),
+		DB:                  db,
+		WA_API_URL:          os.Getenv("WA_API_URL"),
+		WA_API_KEY:          os.Getenv("WA_API_KEY"),
+		WA_SESSION:          os.Getenv("WA_SESSION_ID"),
+		SiakadAPIURL:        os.Getenv("SIAKAD_API_URL"),
+		SiakadAPIKey:        os.Getenv("SIAKAD_API_KEY"),
+		WebhookSecret:       os.Getenv("EMALIYAH_WEBHOOK_SECRET"),
+		BawwabahAPIKey:      os.Getenv("BAWABAH_API_KEY"),
 		GeminiAPIKey:        os.Getenv("API_GEMINI"),
 		CloudinaryCloudName: os.Getenv("CLOUDE_NAME"),
 		CloudinaryAPIKey:    os.Getenv("API_KEY_CLOUDINARY"),

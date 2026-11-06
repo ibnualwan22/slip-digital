@@ -38,6 +38,12 @@ func SetupRouter(
 		api.POST("/webhooks/siakad", kbmHandler.Webhook)
 	}
 
+	// Pengumuman dari Bawwabah (publik, dijaga secret bersama di handler):
+	// periode baru aktif -> buat mapping bulan<->dufah otomatis (Fase 7).
+	if periodHandler != nil {
+		api.POST("/webhooks/bawwabah/period", periodHandler.Announce)
+	}
+
 	// Callback SSO dari Siakad (publik; token sekali pakai diverifikasi di handler).
 	if ssoHandler != nil {
 		api.GET("/sso/siakad", ssoHandler.Callback)

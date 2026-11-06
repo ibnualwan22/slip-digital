@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,10 +14,12 @@ import (
 
 type PeriodHandler struct {
 	repo domain.PeriodRepository
+	// Secret pengumuman Bawwabah (Fase 7). Kosong = pengumuman dimatikan.
+	bawwabahSecret string
 }
 
-func NewPeriodHandler(repo domain.PeriodRepository) *PeriodHandler {
-	return &PeriodHandler{repo: repo}
+func NewPeriodHandler(repo domain.PeriodRepository, bawwabahSecret string) *PeriodHandler {
+	return &PeriodHandler{repo: repo, bawwabahSecret: bawwabahSecret}
 }
 
 type periodRequest struct {
@@ -184,4 +187,87 @@ func (h *PeriodHandler) Delete(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "failed to delete period")
 	}
 	return response.Success(c, http.StatusOK, "period deleted successfully", nil)
+}
+
+// Announce (publik + secret): Bawwabah mengumumkan periode baru aktif.
+// Membuat satu PeriodMapping otomatis: bulan gaji = bulan yang mengandung
+// tanggal mulai dufah (usbu1StartDate), rentang = masa periode penuh.
+// Idempotent: bila mapping untuk dufah yang sama sudah ada, kembalikan
+// yang sudah ada (200, sudahAda=true) tanpa membuat duplikat. Bila rentang
+// tumpang tindih dengan dufah LAIN, tolak 409 — selesaikan manual di
+// halaman PeriodeDufah (fallback). Halaman manual tetap hidup.
+func (h *PeriodHandler) Announce(c echo.Context) error {
+	if h.bawwabahSecret == "" {
+		return response.Error(c, http.StatusServiceUnavailable, "pengumuman bawwabah belum dikonfigurasi")
+	}
+	got := c.Request().Header.Get("x-webhook-secret")
+	if subtle.ConstantTimeCompare([]byte(got), []byte(h.bawwabahSecret)) != 1 {
+		return response.Error(c, http.StatusUnauthorized, "secret tidak valid")
+	}
+	var req struct {
+		DufahName string `json:"dufah_name"`
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "format permintaan tidak valid")
+	}
+	if req.DufahName == "" {
+		return response.Error(c, http.StatusBadRequest, "nama dufah wajib diisi")
+	}
+	start, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "tanggal mulai harus format YYYY-MM-DD")
+	}
+	end, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "tanggal selesai harus format YYYY-MM-DD")
+	}
+	if end.Before(start) {
+		return response.Error(c, http.StatusBadRequest, "tanggal selesai tidak boleh sebelum tanggal mulai")
+	}
+	all, err := h.repo.List()
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "gagal membaca pemetaan periode")
+	}
+	for i := range all {
+		if all[i].DufahName == req.DufahName {
+			view := toPeriodView(&all[i])
+			return response.Success(c, http.StatusOK, "mapping sudah ada", map[string]interface{}{
+				"id": view.ID, "dufah_name": view.DufahName, "usbu": view.Usbu,
+				"month": view.Month, "year": view.Year,
+				"start_date": view.StartDate, "end_date": view.EndDate,
+				"sudahAda": true,
+			})
+		}
+	}
+	// Bulan gaji = bulan yang mengandung tanggal mulai dufah (keputusan
+	// no. 25: Duf'ah 94 mulai 12 Okt -> gaji Oktober).
+	period := &domain.PeriodMapping{
+		DufahName: req.DufahName,
+		Usbu:      0,
+		Month:     int(start.Month()),
+		Year:      start.Year(),
+		StartDate: start,
+		EndDate:   end,
+	}
+	overlap, err := h.findOverlap(period, nil)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to validate period")
+	}
+	if overlap != nil {
+		return response.Error(c, http.StatusConflict, fmt.Sprintf(
+			"rentang tanggal tumpang tindih dengan periode %s (%s s.d. %s)",
+			overlap.DufahName, overlap.StartDate.Format("2006-01-02"), overlap.EndDate.Format("2006-01-02")))
+	}
+	if err := h.repo.Create(period); err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to create period")
+	}
+	view := toPeriodView(period)
+	return response.Success(c, http.StatusCreated, "mapping dibuat", map[string]interface{}{
+		"id": view.ID, "dufah_name": view.DufahName, "usbu": view.Usbu,
+		"month": view.Month, "year": view.Year,
+		"start_date": view.StartDate, "end_date": view.EndDate,
+		"sudahAda": false,
+	})
 }

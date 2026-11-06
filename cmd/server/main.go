@@ -39,7 +39,7 @@ func main() {
 	expRepo := postgres.NewExpenseRepository(cfg.DB)
 	ssoRepo := postgres.NewSSORepository(cfg.DB)
 
-	// Note: We need to initialize payrollService first to inject it into employeeService but 
+	// Note: We need to initialize payrollService first to inject it into employeeService but
 	// payrollService also needs empRepo.
 	payService := usecase.NewPayrollService(payRepo, empRepo)
 	empService := usecase.NewEmployeeService(empRepo, payService)
@@ -64,7 +64,7 @@ func main() {
 	kbmHandler := delivery.NewKBMHandler(kbmService, periodRepo, kbmLogRepo, cfg)
 	kbmHandler.StartReconciliation()
 
-	periodHandler := delivery.NewPeriodHandler(periodRepo)
+	periodHandler := delivery.NewPeriodHandler(periodRepo, cfg.BawwabahAPIKey)
 	meHandler := delivery.NewMeHandler(periodRepo, payRepo, cfg)
 	ssoHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.SSOSecret, false, "Siakad")
 	ssoBawwabahHandler := delivery.NewSSOHandler(empRepo, ssoRepo, cfg.JWTSecret, cfg.BawwabahSSOSecret, true, "Bawwabah")
